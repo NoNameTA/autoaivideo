@@ -48,6 +48,12 @@ async def _noop() -> None:
 _engine_module.engine.start = _noop  # type: ignore[method-assign]
 _engine_module.engine.stop = _noop  # type: ignore[method-assign]
 
+# Lifespan (SELECT 1 + sync_plugins) dùng engine/SessionLocal thật -> trỏ về DB test (có schema).
+import app.main as _main_module  # noqa: E402
+
+_main_module.SessionLocal = _Session
+_main_module.db_engine = _engine
+
 
 async def _reset_schema() -> None:
     async with _engine.begin() as conn:
