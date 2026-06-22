@@ -1,0 +1,12 @@
+{
+  "name": "faceless_v1",
+  "description": "Pipeline faceless: script -> voice -> images -> subtitle -> assemble -> export (SPEC 02 §4)",
+  "steps": [
+    { "step_key": "script", "adapter": "llm.free_chat" },
+    { "step_key": "voice", "adapter": "tts.free_tts" },
+    { "step_key": "images", "adapter": "image.free_gen" },
+    { "step_key": "subtitle", "adapter": "subtitle.whisper" },
+    { "step_key": "assemble", "adapter": "video.ffmpeg" },
+    { "step_key": "export", "adapter": "export.local" }
+  ]
+}

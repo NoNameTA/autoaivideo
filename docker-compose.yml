@@ -1,0 +1,34 @@
+# docker-compose cho AI Video Platform V2 (SPEC 13 §4).
+# Backend chạy FastAPI; SQLite mặc định (volume data/). Postgres tuỳ chọn (bật profile).
+services:
+  backend:
+    build:
+      context: ./backend
+    image: aivideo-backend:dev
+    environment:
+      APP_ENV: prod
+      DATABASE_URL: sqlite+aiosqlite:///./data/app.db
+      DATA_DIR: ./data
+      MAX_CONCURRENT_STEPS: "4"
+      CORS_ORIGINS: "http://localhost:5173"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # Postgres tuỳ chọn — chạy: docker compose --profile postgres up
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: aivideo
+      POSTGRES_PASSWORD: aivideo
+      POSTGRES_DB: aivideo
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

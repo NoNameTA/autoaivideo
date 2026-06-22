@@ -1,0 +1,133 @@
+// Kiểu dữ liệu khớp schema backend (SPEC 09, 10). Nguồn chân lý là backend.
+
+export type JobStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export type StepStatus =
+  | "queued"
+  | "assigned"
+  | "running"
+  | "completed"
+  | "failed"
+  | "retrying"
+  | "cancelled";
+
+export type BatchStatus = "created" | "running" | "completed" | "failed" | "cancelled";
+export type AgentStatus = "online" | "offline" | "busy";
+
+export interface Page<T> {
+  items: T[];
+  next_cursor: string | null;
+}
+
+export interface Info {
+  name: string;
+  version: string;
+  env: string;
+  max_concurrent_steps: number;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string | null;
+  default_pipeline: string;
+  config: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectCreate {
+  name: string;
+  description?: string | null;
+  default_pipeline?: string;
+  config?: Record<string, unknown>;
+}
+
+export type ProjectUpdate = Partial<ProjectCreate>;
+
+export interface Batch {
+  id: string;
+  project_id: string;
+  name: string;
+  status: BatchStatus;
+  input_count: number;
+  counts: Record<string, number>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BatchCreate {
+  name: string;
+  inputs: Record<string, unknown>[];
+  pipeline?: string | null;
+}
+
+export interface Step {
+  id: string;
+  job_id: string;
+  step_key: string;
+  order: number;
+  adapter: string;
+  status: StepStatus;
+  attempt: number;
+  max_retries: number;
+  assigned_agent: string | null;
+  inputs: Record<string, unknown>;
+  config: Record<string, unknown>;
+  error: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+}
+
+export interface Job {
+  id: string;
+  batch_id: string;
+  seq: number;
+  status: JobStatus;
+  pipeline: string;
+  vars: Record<string, unknown>;
+  progress: number;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobDetail extends Job {
+  steps: Step[];
+}
+
+export interface Agent {
+  id: string;
+  version: string;
+  capabilities: string[];
+  capacity: number;
+  status: AgentStatus;
+  os: string;
+  last_heartbeat: string | null;
+  registered_at: string;
+}
+
+export interface Plugin {
+  name: string;
+  version: string;
+  capability: string;
+  type: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+  manifest: Record<string, unknown>;
+  installed_at: string;
+}
+
+export interface PluginRegister {
+  name: string;
+  version?: string;
+  capability?: string;
+  type?: string;
+  manifest?: Record<string, unknown>;
+  config?: Record<string, unknown>;
+}

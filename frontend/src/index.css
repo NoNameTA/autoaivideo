@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — SPEC 12 §2. Dark mặc định; .light đảo nền, giữ accent xanh. */
+:root,
+html.dark {
+  --bg: #0b0f14;
+  --surface: #121823;
+  --border: #1e2a3a;
+  --primary: #2d7ff9;
+  --primary-hover: #1e6ae0;
+  --text: #e6edf3;
+  --text-muted: #8a97a6;
+  --success: #2fb67c;
+  --warning: #e0a100;
+  --danger: #e5484d;
+  --info: #3ba0ff;
+}
+
+html.light {
+  --bg: #f6f8fb;
+  --surface: #ffffff;
+  --border: #dce3ec;
+  --primary: #2d7ff9;
+  --primary-hover: #1e6ae0;
+  --text: #0b0f14;
+  --text-muted: #5b6675;
+  --success: #1f9d6b;
+  --warning: #b07d00;
+  --danger: #cc2f34;
+  --info: #2d7ff9;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}

@@ -1,0 +1,28 @@
+{
+  "name": "local_demo",
+  "description": "Pipeline demo chạy thật bằng tiến trình cục bộ miễn phí (adapter cli.run). Mỗi step spawn process thật và tạo file asset thật (SPEC 06 cli-process, 14 free-only).",
+  "steps": [
+    {
+      "step_key": "write_input",
+      "adapter": "cli.run",
+      "config": {
+        "command": [
+          "python",
+          "-c",
+          "import os; open('input.json','w',encoding='utf-8').write(os.environ.get('STEP_INPUTS','{}'))"
+        ]
+      }
+    },
+    {
+      "step_key": "package",
+      "adapter": "cli.run",
+      "config": {
+        "command": [
+          "python",
+          "-c",
+          "open('result.txt','w',encoding='utf-8').write('done')"
+        ]
+      }
+    }
+  ]
+}

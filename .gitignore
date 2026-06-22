@@ -1,0 +1,44 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.db
+*.db-wal
+*.db-shm
+
+# ===== Node / Frontend =====
+node_modules/
+frontend/dist/
+.vite/
+*.local
+
+# ===== Env & secrets =====
+.env
+.env.*
+!.env.example
+*.secret
+secrets/
+*-profile/
+_test_profile/
+
+# ===== Runtime data (SPEC 07) =====
+data/
+!data/.gitkeep
+
+# ===== Logs =====
+logs/
+*.log
+
+# ===== OS / IDE =====
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

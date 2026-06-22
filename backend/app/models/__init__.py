@@ -1,0 +1,23 @@
+"""ORM models (SPEC 10). Import tất cả để registry/metadata đầy đủ."""
+
+from app.models.agent import Agent
+from app.models.asset import Asset
+from app.models.batch import Batch
+from app.models.event import Event
+from app.models.job import Job
+from app.models.job_queue import JobQueue
+from app.models.plugin import Plugin
+from app.models.project import Project
+from app.models.step import Step
+
+__all__ = [
+    "Agent",
+    "Asset",
+    "Batch",
+    "Event",
+    "Job",
+    "JobQueue",
+    "Plugin",
+    "Project",
+    "Step",
+]
