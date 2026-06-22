@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "yt-dlp",
+  "properties": {
+    "url": {
+      "type": "string",
+      "title": "URL nguồn",
+      "description": "URL tải. Có thể truyền qua inputs.url thay cho config."
+    },
+    "args": {
+      "type": "array",
+      "items": { "type": "string" },
+      "title": "Đối số yt-dlp bổ sung",
+      "description": "Ví dụ giới hạn định dạng/độ phân giải."
+    },
+    "output_template": {
+      "type": "string",
+      "title": "Mẫu tên file",
+      "default": "%(title).80s.%(ext)s"
+    }
+  },
+  "required": []
+}

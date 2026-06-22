@@ -4,6 +4,34 @@
 
 ## [Unreleased]
 
+### Phase 5 — Plugin System (2026-06-22)
+> SPEC 06, 08, 14. Plugin SDK ổn định + lifecycle + contract; adapter thật cho app verify được trên máy.
+
+#### Added — Plugin SDK (agent)
+- `agent/sdk.py` — `Adapter` ABC (capability, lifecycle `validate_config→prepare→run→collect→cleanup`), `StepContext`, `ProcessDriver`, `Asset`, `TransientError`/`PermanentError`, `SDK_VERSION`.
+- `agent/plugin_loader.py` — nạp plugin từ `plugins/<name>/`: đọc `manifest.yaml`, **cổng free-only** (SPEC 14), import `adapter.py` theo entrypoint, khớp capability; plugin lỗi bị bỏ qua an toàn.
+- `agent/adapter_registry.py` — gộp adapter built-in (`cli.run`) + plugin nạp động; cung cấp `capabilities()`.
+- Refactor `adapters/cli_run.py`, `runner.py` (chạy đúng lifecycle SDK), `connection.py` (map `TransientError`→retryable).
+
+#### Added — 3 plugin thật (plugins/)
+- `plugins/ffmpeg/` (capability `video.ffmpeg`, cli-process) — manifest+adapter+schema+README.
+- `plugins/yt_dlp/` (capability `media.download`, cli-process).
+- `plugins/chrome/` (capability `web.cdp`, web-cdp) — điều khiển Chrome headless qua DevTools Protocol, screenshot.
+- Mỗi plugin: `manifest.yaml` + `adapter.py` + `config.schema.json` + `README.md` (đúng SPEC 08 §2).
+
+#### Added — Backend
+- `app/plugins/loader.py` — quét `plugins/`, nhúng `config_schema`, **đồng bộ vào DB** lúc khởi động (giữ `enabled`/`config` người dùng); cổng free-only. Plugin Manager (frontend) + `/plugins/{name}/schema` dùng dữ liệu thật.
+
+#### Added — Contract test (SPEC 08 §9, 15 §3)
+- `agent/tests/test_plugin_contract.py` — kiểm tra manifest đủ trường, `free is True`, JSON Schema hợp lệ, adapter subclass + capability khớp + có `run`, loader nạp đủ 3 capability. **4 test pass.**
+
+#### Deps
+- Thêm `PyYAML==6.0.2` (backend + agent) cho manifest YAML.
+
+#### Verified (thật)
+- Backend: ruff ✅ · pytest ✅ **22 passed**. Agent: ruff ✅ · pytest ✅ **4 passed (contract)**.
+- **Live adapter (thật) ✅**: FFmpeg tạo `out.mp4` (2326B) offline; Chrome CDP chụp `screenshot.png` (5261B) headless; yt-dlp v2026.06.09 sẵn sàng. RESULT PASS.
+
 ### Phase 4 — Workflow & Queue + Desktop Agent tối thiểu (2026-06-22)
 > Quyết định người dùng: gộp 1 Desktop Agent thật để chạy job end-to-end thật (không mock). SPEC 02 §3, 04 §4, 05, 09 §4.
 

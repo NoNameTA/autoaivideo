@@ -1,0 +1,11 @@
+name: chrome
+version: 1.0.0
+capability: web.cdp
+type: web-cdp
+free: true
+license: BSD-3-Clause
+source_url: https://www.google.com/chrome/
+automation_allowed: true
+entrypoint: adapter:ChromeCdpAdapter
+config_schema: config.schema.json
+requires_sdk: "1.0.0"

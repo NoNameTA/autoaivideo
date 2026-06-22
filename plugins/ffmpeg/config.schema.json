@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "FFmpeg",
+  "properties": {
+    "args": {
+      "type": "array",
+      "items": { "type": "string" },
+      "title": "Đối số ffmpeg",
+      "description": "Các đối số đặt sau 'ffmpeg -y', bao gồm tên file output (ghi vào thư mục step)."
+    },
+    "ffmpeg_path": {
+      "type": "string",
+      "title": "Đường dẫn ffmpeg",
+      "description": "Bỏ trống để dùng ffmpeg trong PATH."
+    }
+  },
+  "required": ["args"]
+}

@@ -1,0 +1,11 @@
+name: ffmpeg
+version: 1.0.0
+capability: video.ffmpeg
+type: cli-process
+free: true
+license: LGPL-2.1-or-later
+source_url: https://ffmpeg.org/
+automation_allowed: true
+entrypoint: adapter:FfmpegAdapter
+config_schema: config.schema.json
+requires_sdk: "1.0.0"

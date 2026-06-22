@@ -1,0 +1,11 @@
+name: yt_dlp
+version: 1.0.0
+capability: media.download
+type: cli-process
+free: true
+license: Unlicense
+source_url: https://github.com/yt-dlp/yt-dlp
+automation_allowed: true
+entrypoint: adapter:YtDlpAdapter
+config_schema: config.schema.json
+requires_sdk: "1.0.0"

@@ -16,8 +16,10 @@ from app.api.ws import dashboard as ws_dashboard
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import setup_logging
+from app.db.session import SessionLocal
 from app.db.session import engine as db_engine
 from app.orchestrator.engine import engine as orchestrator
+from app.plugins.loader import sync_plugins
 
 log = logging.getLogger("app")
 
@@ -28,6 +30,9 @@ async def lifespan(_: FastAPI):
     # Kiểm tra kết nối DB lúc khởi động (SPEC 04 §8). Schema do Alembic quản lý (SPEC 10 §5).
     async with db_engine.connect() as conn:
         await conn.execute(text("SELECT 1"))
+    async with SessionLocal() as session:
+        synced = await sync_plugins(session)
+    log.info("Đồng bộ %d plugin từ plugins/", synced)
     await orchestrator.start()
     log.info("Backend khởi động xong")
     yield

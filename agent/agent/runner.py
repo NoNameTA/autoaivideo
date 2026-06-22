@@ -1,21 +1,38 @@
-"""Điều phối step tới adapter theo capability (SPEC 05 §5)."""
+"""Điều phối step tới adapter theo capability + chạy đúng lifecycle SDK (SPEC 05 §5, 08 §4)."""
 
 from __future__ import annotations
 
-from agent.adapters.cli_run import CliRunAdapter
+from agent.adapter_registry import get_adapters
 from agent.config import AgentSettings
-
-# Đăng ký adapter agent thật sự hiện thực được (capability -> adapter).
-ADAPTERS: dict[str, type] = {CliRunAdapter.capability: CliRunAdapter}
-
-
-def capabilities() -> list[str]:
-    return sorted(ADAPTERS.keys())
+from agent.fs import step_output_dir
+from agent.sdk import PermanentError, ProcessDriver, StepContext, build_step_inputs_env
 
 
 async def run_step(settings: AgentSettings, data: dict) -> list[dict]:
     capability = data.get("adapter") or data.get("capability")
-    adapter_cls = ADAPTERS.get(capability)
-    if adapter_cls is None:
-        raise RuntimeError(f"Agent không hỗ trợ adapter '{capability}'")
-    return await adapter_cls().run(settings, data)
+    adapter = get_adapters().get(capability)
+    if adapter is None:
+        raise PermanentError(f"Agent không hỗ trợ adapter '{capability}'")
+
+    config = data.get("config", {}) or {}
+    inputs = data.get("inputs", {}) or {}
+    out_dir = step_output_dir(settings.data_dir, data["job_id"], data["step_id"])
+    ctx = StepContext(
+        step_id=data["step_id"],
+        job_id=data["job_id"],
+        inputs=inputs,
+        config=config,
+        output_dir=out_dir,
+        process=ProcessDriver(out_dir, build_step_inputs_env(inputs)),
+        data_dir=settings.data_dir,
+        timeout=settings.step_timeout,
+        trace_id=data.get("trace_id"),
+    )
+
+    adapter.validate_config(config)
+    await adapter.prepare(ctx)
+    try:
+        await adapter.run(ctx)
+        return await adapter.collect(ctx)  # type: ignore[return-value]
+    finally:
+        await adapter.cleanup(ctx)

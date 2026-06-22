@@ -10,8 +10,10 @@ import platform
 import websockets
 
 from agent import __version__
+from agent.adapter_registry import capabilities
 from agent.config import AgentSettings
-from agent.runner import capabilities, run_step
+from agent.runner import run_step
+from agent.sdk import TransientError
 
 log = logging.getLogger("agent")
 
@@ -47,7 +49,10 @@ async def _exec_step(ws, settings: AgentSettings, data: dict) -> None:
         assets = await run_step(settings, data)
         await _send(ws, "step.completed", {"step_id": step_id, "assets": assets})
         log.info("step %s hoàn tất (%d asset)", step_id, len(assets))
-    except Exception as e:  # noqa: BLE001 - báo lỗi về backend
+    except TransientError as e:
+        await _send(ws, "step.failed", {"step_id": step_id, "error": str(e), "retryable": True})
+        log.warning("step %s lỗi tạm thời: %s", step_id, e)
+    except Exception as e:  # noqa: BLE001 - lỗi vĩnh viễn -> báo về backend
         await _send(ws, "step.failed", {"step_id": step_id, "error": str(e), "retryable": False})
         log.warning("step %s lỗi: %s", step_id, e)
 
