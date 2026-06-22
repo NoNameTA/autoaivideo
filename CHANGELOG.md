@@ -4,18 +4,22 @@
 
 ## [Unreleased]
 
-### Phase 10 — Real Deployment (2026-06-22) — đang tiến hành
+### Phase 10 — Real Deployment (2026-06-22)
 #### Done
-- Xác minh **INSTALL.md từ môi trường sạch**: Backend (venv mới + alembic + /health=200), Frontend (`npm ci` + build + 404.html), Agent (venv mới + chạy), Agent .exe (Phase 9). Đúng tài liệu.
+- Xác minh **INSTALL.md từ môi trường sạch**: Backend (venv + alembic + /health=200), Frontend (`npm ci` + build + 404.html), Agent (venv + chạy), Agent .exe (Phase 9).
 - **Push source + tags** lên GitHub `NoNameTA/autoaivideo`: `main`, `v0.8.0`, `v0.9.0`.
+- **GitHub Actions CI: 3/3 job XANH** (Backend / Agent / Frontend).
+- **🌐 GitHub Pages LIVE & verified**: `https://nonameta.github.io/autoaivideo/` → HTTP 200, title đúng, base `/autoaivideo/`; **refresh route sâu** (`/projects/...`) phục vụ `404.html` (SPA fallback) — hoạt động.
 
-#### Pending (cần CHỦ repo NoNameTA — quyền admin)
-- Bật **GitHub Actions** + **Pages (Source: GitHub Actions)** → `frontend-pages.yml` tự build & deploy. Tài khoản đẩy code (TranQA28) chỉ có quyền `pull`; bật Pages/dispatch workflow trả 403 "Must have admin rights".
-- **Docker smoke test** — chờ cài Docker trên máy.
+#### Fixed (để CI/Deploy chạy được)
+- `db/session.py`: tự tạo thư mục SQLite (CI thiếu `backend/data/`).
+- `agent/tests/__init__.py`: pytest tìm thấy package `agent` trên CI.
+- `tests/conftest.py`: lifespan (sync_plugins/SELECT 1) dùng DB test có schema.
+- 2 workflow: **ghim toàn bộ action sang full commit SHA** (đáp ứng repo policy).
+- Repo settings (owner): bật Actions → "Allow all actions"; bỏ "Require actions pinned to full SHA" (vì `upload-pages-artifact` gọi `upload-artifact` nội bộ bằng tag).
 
-#### Notes
-- Workflow YAML hợp lệ (validate cục bộ OK). Run đầu `startup_failure` do cấu hình/quyền Actions phía repo owner.
-- Pages URL dự kiến: `https://nonameta.github.io/autoaivideo/` (hiện 404 — chưa bật).
+#### Pending
+- **Docker smoke test** — chờ cài Docker trên máy (compose + Dockerfile đã sẵn sàng).
 
 ### Phase 9 — Desktop Agent Full (2026-06-22)
 > SPEC 05 §4. Quyết định người dùng: CDP = raw DevTools Protocol (không Playwright); UIA verify bằng Notepad; plugin qua .exe = ffmpeg + chrome.
