@@ -1,5 +1,5 @@
-# Backend image (SPEC 13 §4) — slim, đa tầng tối giản.
-FROM python:3.11-slim AS base
+# Backend image (SPEC 13 §4) — slim. Migration chạy lúc khởi động (alembic upgrade head).
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -10,5 +10,5 @@ COPY . .
 
 EXPOSE 8000
 
-# Phase Backend Foundation sẽ thêm: alembic upgrade head trước khi chạy.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Áp migration rồi chạy server (SPEC 13 §4).
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

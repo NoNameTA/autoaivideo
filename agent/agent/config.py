@@ -21,6 +21,8 @@ class AgentSettings(BaseSettings):
     step_timeout: int = 600
     capacity: int = 2
     watch_debounce_ms: int = 200
+    # Thư mục plugins (đặt khi chạy bản .exe đóng gói; trống = dò theo mã nguồn).
+    plugins_dir: str = ""
 
 
 @lru_cache

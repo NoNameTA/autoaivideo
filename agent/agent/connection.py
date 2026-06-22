@@ -31,7 +31,7 @@ async def _register(ws, settings: AgentSettings) -> None:
         {
             "agent_id": settings.agent_id,
             "version": __version__,
-            "capabilities": capabilities(),
+            "capabilities": capabilities(settings.plugins_dir or None),
             "capacity": settings.capacity,
             "os": platform.system().lower(),
         },
@@ -107,7 +107,11 @@ async def _session(settings: AgentSettings) -> None:
     loop = asyncio.get_event_loop()
     async with websockets.connect(url, max_size=None) as ws:
         await _register(ws, settings)
-        log.info("Đã đăng ký agent %s (capabilities=%s)", settings.agent_id, capabilities())
+        log.info(
+            "Đã đăng ký agent %s (capabilities=%s)",
+            settings.agent_id,
+            capabilities(settings.plugins_dir or None),
+        )
 
         queue: asyncio.Queue = asyncio.Queue()
 

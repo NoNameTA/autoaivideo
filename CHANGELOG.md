@@ -4,6 +4,31 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-22
+
+> Mốc **Semantic Versioning** đầu tiên (SPEC 13 §7). `0.8.0` gói toàn bộ Phase 1–8 (mỗi phase ~ 1 minor:
+> 0.1 Scaffold · 0.2 Backend · 0.3 Frontend · 0.4 Workflow+Agent · 0.5 Plugin · 0.6 File Manager · 0.7 Integration&Testing · 0.8 Deployment). Chi tiết theo từng Phase bên dưới.
+
+### Phase 8 — GitHub Pages Deployment (2026-06-22)
+> SPEC 13. Quyết định người dùng: cấu hình + verify local (không push repo); chỉ tạo compose (Docker smoke Pending).
+
+#### Added
+- **404.html SPA fallback**: script `postbuild` copy `dist/index.html` → `dist/404.html`; base động qua `VITE_BASE`.
+- **Workflow** `.github/workflows/frontend-pages.yml`: build (base = `/<repo>/`) + `upload-pages-artifact` + `deploy-pages`.
+- **PyInstaller**: `agent/run.py` (entry), `agent/build_exe.py` → `dist/aivideo-agent.exe`. Agent config `plugins_dir` (env `PLUGINS_DIR`) để exe nạp plugin từ thư mục.
+- **INSTALL.md**: hướng dẫn cài đặt & chạy Frontend / Backend / Agent / Plugin / Pages / smoke.
+- `Dockerfile`: entrypoint chạy `alembic upgrade head` trước uvicorn (SPEC 13 §4). `.gitignore`: loại `agent/build|dist`, `*.spec`.
+
+#### Verified
+- Frontend: `npm run build` (base `/aivideo/`) ✅ — **404.html = index.html**, assets đúng base.
+- **SPA-refresh (browser) ✅**: mở trực tiếp route sâu `/aivideo/projects/...` render đúng trang (vite preview mô phỏng GH Pages) — đã chụp.
+- **Agent .exe (thật) ✅**: `aivideo-agent.exe` nạp plugin từ `PLUGINS_DIR`, đăng ký backend đầy đủ `['cli.run','media.download','video.ffmpeg','web.cdp']`, online.
+- Backend pytest ✅ · Agent pytest ✅.
+
+#### Pending Verification
+- **Deploy Pages thật**: chưa push (AIVideoPlatform chưa có remote) — cấu hình sẵn sàng, user tự tạo repo + bật Pages.
+- **Docker compose smoke**: Docker chưa cài trên máy → chưa chạy `docker compose up`. Compose + Dockerfile đã hoàn thiện.
+
 ### Phase 7 — Integration & Testing (2026-06-22)
 > SPEC 15. Quyết định người dùng: E2E thật bằng `cli.run`/`video.ffmpeg` (không mock); E2E local-only, CI chạy unit/build; Dashboard Activity Stream phân loại `plugin.runtime.*` + `plugin.lifecycle.*`.
 

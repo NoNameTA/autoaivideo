@@ -10,7 +10,7 @@ from agent.sdk import PermanentError, ProcessDriver, StepContext, build_step_inp
 
 async def run_step(settings: AgentSettings, data: dict) -> list[dict]:
     capability = data.get("adapter") or data.get("capability")
-    adapter = get_adapters().get(capability)
+    adapter = get_adapters(settings.plugins_dir or None).get(capability)
     if adapter is None:
         raise PermanentError(f"Agent không hỗ trợ adapter '{capability}'")
 
