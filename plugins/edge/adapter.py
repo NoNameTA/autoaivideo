@@ -1,7 +1,4 @@
-"""Adapter Chrome (capability web.cdp) — điều khiển Chrome headless qua CDP driver (SPEC 05 §4, 06).
-
-CDP nâng cao: goto + đọc title (eval) + screenshot. Không hard-code toạ độ chuột (SPEC 06).
-"""
+"""Adapter Edge (capability web.cdp.edge) — điều khiển Microsoft Edge headless qua CDP driver."""
 
 from __future__ import annotations
 
@@ -10,11 +7,11 @@ import json
 from agent.drivers.cdp import CdpDriver, find_browser
 from agent.sdk import Adapter, PermanentError, StepContext
 
-_BROWSER_KIND = "chrome"
+_BROWSER_KIND = "edge"
 
 
-class ChromeCdpAdapter(Adapter):
-    capability = "web.cdp"
+class EdgeCdpAdapter(Adapter):
+    capability = "web.cdp.edge"
 
     async def run(self, ctx: StepContext) -> None:
         url = ctx.inputs.get("url") or ctx.config.get("url")
@@ -22,7 +19,7 @@ class ChromeCdpAdapter(Adapter):
             raise PermanentError("Thiếu 'url' (inputs hoặc config)")
         browser = find_browser(_BROWSER_KIND, ctx.config.get("browser_path"))
         if not browser:
-            raise PermanentError(f"Không tìm thấy {_BROWSER_KIND}")
+            raise PermanentError("Không tìm thấy Microsoft Edge")
 
         driver = CdpDriver(browser)
         try:

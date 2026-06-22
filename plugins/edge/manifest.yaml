@@ -1,0 +1,11 @@
+name: edge
+version: 1.0.0
+capability: web.cdp.edge
+type: web-cdp
+free: true
+license: Proprietary-Free
+source_url: https://www.microsoft.com/edge
+automation_allowed: true
+entrypoint: adapter:EdgeCdpAdapter
+config_schema: config.schema.json
+requires_sdk: "1.0.0"

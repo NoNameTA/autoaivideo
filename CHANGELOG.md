@@ -4,6 +4,31 @@
 
 ## [Unreleased]
 
+### Phase 9 — Desktop Agent Full (2026-06-22)
+> SPEC 05 §4. Quyết định người dùng: CDP = raw DevTools Protocol (không Playwright); UIA verify bằng Notepad; plugin qua .exe = ffmpeg + chrome.
+
+#### Added — Drivers (agent)
+- `agent/drivers/cdp.py` — **CDP driver nâng cao** (raw CDP qua websockets+httpx): `launch/goto/eval/wait_for/click/type/title/screenshot/close`. Chrome & Edge.
+- `agent/drivers/uia.py` — **UIA driver** (pywinauto): `start (kết nối cửa sổ theo title qua Desktop) / focus_window / type_keys / get_text / close` (đóng bằng PID, tránh hộp thoại Save). Dep `pywinauto` (Windows-only).
+
+#### Added — Plugins (External App adapters)
+- Refactor `plugins/chrome` dùng `CdpDriver` (goto + đọc title + screenshot).
+- `plugins/edge` (`web.cdp.edge`) — Edge headless qua CDP.
+- `plugins/notepad` (`desktop.notepad`) — minh hoạ UIA: mở Notepad, gõ text, đọc lại → asset.
+- Pipeline `agent_full_demo.json` (video.ffmpeg + web.cdp) cho E2E qua .exe.
+
+#### Changed
+- `build_exe.py`: hidden-import `agent.drivers.cdp/uia` + collect-all `httpx` (driver chỉ plugin nạp động dùng → PyInstaller không tự thấy). Exe nạp đủ 6 capability.
+- SPEC `05 §4` cập nhật: CDP raw (không Playwright), thêm Edge.
+
+#### Verified
+- Backend pytest ✅ 28 passed (1 e2e skip) · Agent ruff ✅ · pytest ✅ 15 passed (+3 driver).
+- **CDP nâng cao (thật) ✅**: Chrome & Edge headless → `goto`+`eval(title)=AIVID`+`screenshot.png`.
+- **🎯 E2E qua Agent .exe (thật) ✅**: `aivideo-agent.exe` nạp đủ plugin, chạy `agent_full_demo` → **out.mp4 (ffmpeg) + screenshot.png (chrome)** + job completed. RESULT PASS.
+
+#### Pending Verification
+- **UIA Notepad live**: code thật (pywinauto), nhưng môi trường chạy tool **không có desktop tương tác** (`WaitForInputIdle failed`) → chưa verify live ở đây. Chạy trên desktop thật sẽ hoạt động.
+
 ## [0.8.0] - 2026-06-22
 
 > Mốc **Semantic Versioning** đầu tiên (SPEC 13 §7). `0.8.0` gói toàn bộ Phase 1–8 (mỗi phase ~ 1 minor:

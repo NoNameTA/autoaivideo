@@ -41,9 +41,10 @@ Dispatcher route step chỉ tới agent có capability khớp.
 ## 4. Drivers
 
 ### CDP Driver (web app)
-- Dùng Playwright kết nối Chromium (cùng kỹ thuật CDP/`window.api` đã dùng ở dự án trước).
-- Có thể attach vào Chrome đang mở (debug port) hoặc khởi chạy context riêng.
-- Cung cấp API: `goto`, `click`, `type`, `wait_for`, `eval`, `download`, `screenshot`.
+- Dùng **raw Chrome DevTools Protocol** (websockets + httpx) — nhẹ, không cần Playwright. Khởi chạy Chromium/Edge headless với `--remote-debugging-port` (cùng kỹ thuật CDP đã dùng ở dự án trước).
+- Có thể attach vào Chrome đang mở (debug port) hoặc khởi chạy context riêng (user-data-dir tạm).
+- Cung cấp API: `goto`, `click`, `type`, `wait_for`, `eval`, `screenshot`, `title`, `close`.
+- Hỗ trợ cả **Chrome** (`web.cdp`) và **Edge** (`web.cdp.edge`).
 
 ### UI Automation Driver (desktop app)
 - pywinauto (Windows) điều khiển cửa sổ native: focus, click control, gõ phím, đọc trạng thái.

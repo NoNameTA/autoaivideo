@@ -1,0 +1,11 @@
+name: notepad
+version: 1.0.0
+capability: desktop.notepad
+type: desktop-uia
+free: true
+license: Proprietary-Free
+source_url: https://www.microsoft.com/windows
+automation_allowed: true
+entrypoint: adapter:NotepadAdapter
+config_schema: config.schema.json
+requires_sdk: "1.0.0"

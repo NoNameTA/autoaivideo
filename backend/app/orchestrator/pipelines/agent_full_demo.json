@@ -1,0 +1,16 @@
+{
+  "name": "agent_full_demo",
+  "description": "E2E Phase 9: 2 step plugin chạy qua Agent .exe — video.ffmpeg + web.cdp (chrome).",
+  "steps": [
+    {
+      "step_key": "render",
+      "adapter": "video.ffmpeg",
+      "config": { "args": ["-f", "lavfi", "-i", "color=c=red:s=160x120:d=1", "out.mp4"] }
+    },
+    {
+      "step_key": "shot",
+      "adapter": "web.cdp",
+      "config": { "url": "data:text/html,<title>AIVID</title><h1>ok</h1>" }
+    }
+  ]
+}

@@ -4,3 +4,4 @@ pydantic==2.10.4
 pydantic-settings==2.7.1
 PyYAML==6.0.2
 watchdog==6.0.0
+pywinauto==0.6.9 ; sys_platform == "win32"

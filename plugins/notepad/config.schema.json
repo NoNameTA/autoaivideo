@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Notepad (UIA)",
+  "properties": {
+    "text": {
+      "type": "string",
+      "title": "Văn bản",
+      "description": "Văn bản gõ vào Notepad. Có thể truyền qua inputs.text."
+    }
+  },
+  "required": []
+}
