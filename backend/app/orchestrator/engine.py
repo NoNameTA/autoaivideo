@@ -29,6 +29,7 @@ from app.orchestrator import queue
 from app.orchestrator.agent_registry import registry
 from app.orchestrator.dispatcher import build_assign
 from app.orchestrator.retry import backoff_seconds, should_retry
+from app.plugins.registry_cache import is_plugin_capability
 
 log = logging.getLogger("orchestrator")
 
@@ -168,6 +169,13 @@ class OrchestratorEngine:
             job = await session.get(Job, step.job_id)
             if job:
                 await self._broadcast_step(step, job)
+            if is_plugin_capability(step.adapter):
+                await self._activity(
+                    "plugin.runtime.started",
+                    step_id=step.id,
+                    job_id=step.job_id,
+                    capability=step.adapter,
+                )
 
     async def on_progress(self, step_id: str, pct: int | None) -> None:
         async with SessionLocal() as session:
@@ -181,6 +189,10 @@ class OrchestratorEngine:
                     {"job_id": job.id, "step_id": step_id, "status": step.status, "progress": pct},
                     scope="batch",
                     id_=job.batch_id,
+                )
+            if is_plugin_capability(step.adapter):
+                await self._activity(
+                    "plugin.runtime.progress", step_id=step_id, capability=step.adapter, pct=pct
                 )
 
     async def on_completed(self, step_id: str, assets: list[dict]) -> None:
@@ -206,6 +218,13 @@ class OrchestratorEngine:
                 registry.dec_inflight(step.assigned_agent)
             await queue.mark_done(session, step_id)
             await session.commit()
+            if is_plugin_capability(step.adapter):
+                await self._activity(
+                    "plugin.runtime.finished",
+                    step_id=step.id,
+                    job_id=step.job_id,
+                    capability=step.adapter,
+                )
             await self._advance(session, step.job_id)
 
     async def on_failed(self, step_id: str, error: str, retryable: bool) -> None:
@@ -237,6 +256,13 @@ class OrchestratorEngine:
             step.status = StepStatus.failed
             step.error = error
             await session.commit()
+            if is_plugin_capability(step.adapter):
+                await self._activity(
+                    "plugin.runtime.failed",
+                    step_id=step.id,
+                    capability=step.adapter,
+                    error=error,
+                )
             await self._advance(session, step.job_id)
 
     async def _advance(self, session: AsyncSession, job_id: str) -> None:
@@ -280,6 +306,9 @@ class OrchestratorEngine:
             scope="batch",
             id_=job.batch_id,
         )
+        await self._activity(
+            "job.updated", job_id=job.id, status=job.status, progress=job.progress
+        )
 
     async def _has_open_queue(self, session: AsyncSession, step_id: str) -> bool:
         row = (
@@ -314,6 +343,10 @@ class OrchestratorEngine:
         await manager.broadcast(
             "batch.updated", {"batch_id": batch_id, "counts": counts}, scope="batch", id_=batch_id
         )
+
+    async def _activity(self, kind: str, **data) -> None:
+        """Phát hoạt động lên kênh global cho Dashboard Activity Stream (SPEC 09 §4.1)."""
+        await manager.broadcast("activity", {"kind": kind, **data})
 
     async def _broadcast_step(self, step: Step, job: Job) -> None:
         await manager.broadcast(

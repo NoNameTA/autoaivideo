@@ -1,13 +1,37 @@
 // Quản lý vòng đời 1 kết nối WS dashboard + đồng bộ React Query khi có realtime (SPEC 03 §4).
 import { useEffect } from "react";
 
-import { WsClient } from "../api/ws";
+import { WsClient, type WsMessage } from "../api/ws";
 import { qk } from "../api/hooks";
 import { queryClient } from "../lib/queryClient";
 import { useSettingsStore } from "../store/settings";
 import { useUiStore } from "../store/ui";
 
 let activeClient: WsClient | null = null;
+
+function basename(p: unknown): string {
+  return typeof p === "string" ? p.split(/[/\\]/).pop() || p : "";
+}
+
+/** Phân loại message WS thành mục Activity cho Dashboard (SPEC 09 §4.1). */
+function pushActivity(msg: WsMessage): void {
+  const d = (msg.data ?? {}) as Record<string, unknown>;
+  const add = useUiStore.getState().pushActivity;
+  if (msg.type === "activity") {
+    const kind = String(d.kind ?? "");
+    if (kind.startsWith("plugin.runtime")) {
+      add({ category: "plugin.runtime", kind, text: `${kind} · ${d.capability ?? ""}` });
+    } else if (kind.startsWith("plugin.lifecycle")) {
+      add({ category: "plugin.lifecycle", kind, text: `${kind} · ${d.name ?? ""}` });
+    } else if (kind === "job.updated") {
+      add({ category: "job", kind, text: `job ${d.status} ${d.progress ?? 0}%` });
+    }
+  } else if (msg.type === "fs.event") {
+    add({ category: "fs", kind: String(d.type ?? "fs"), text: `${d.type}: ${basename(d.path)}` });
+  } else if (msg.type === "agent.updated") {
+    add({ category: "agent", kind: "agent.updated", text: `${d.agent_id}: ${d.status}` });
+  }
+}
 
 export function getWsClient(): WsClient | null {
   return activeClient;
@@ -39,6 +63,8 @@ export function useWebSocketConnection(): void {
         queryClient.invalidateQueries({ queryKey: ["job"] });
         queryClient.invalidateQueries({ queryKey: ["batch"] });
       }
+      // Dashboard Activity Stream (SPEC 09 §4.1, 12 §5).
+      pushActivity(msg);
     });
     client.connect();
 

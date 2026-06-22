@@ -67,6 +67,21 @@ def client() -> Iterator[TestClient]:
         yield test_client
 
 
+def pytest_configure(config) -> None:  # noqa: ANN001
+    config.addinivalue_line(
+        "markers", "e2e: end-to-end cần backend+agent thật; chỉ chạy khi RUN_E2E=1"
+    )
+
+
+def pytest_collection_modifyitems(config, items) -> None:  # noqa: ANN001, ARG001
+    if os.environ.get("RUN_E2E") == "1":
+        return
+    skip = pytest.mark.skip(reason="E2E: đặt RUN_E2E=1 để chạy")
+    for item in items:
+        if "e2e" in item.keywords:
+            item.add_marker(skip)
+
+
 def pytest_sessionfinish(session, exitstatus) -> None:  # noqa: ANN001, ARG001
     try:
         os.unlink(_tmp.name)

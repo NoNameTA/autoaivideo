@@ -14,6 +14,7 @@ import yaml
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.plugin import Plugin
+from app.plugins import registry_cache
 
 log = logging.getLogger("app")
 
@@ -60,6 +61,7 @@ async def sync_plugins(session: AsyncSession) -> int:
         plugin.capability = manifest.get("capability", "")
         plugin.type = manifest.get("type", "")
         plugin.manifest = manifest
+        registry_cache.add_capability(manifest.get("capability", ""))
         count += 1
     await session.commit()
     return count

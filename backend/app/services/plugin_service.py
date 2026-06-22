@@ -3,9 +3,15 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.ws.manager import manager
 from app.core.errors import NotFoundError
 from app.models.plugin import Plugin
+from app.plugins import registry_cache
 from app.schemas.plugin import PluginRegister, PluginUpdate
+
+
+async def _lifecycle(action: str, name: str) -> None:
+    await manager.broadcast("activity", {"kind": f"plugin.lifecycle.{action}", "name": name})
 
 
 class PluginService:
@@ -23,6 +29,7 @@ class PluginService:
     @staticmethod
     async def register(session: AsyncSession, data: PluginRegister) -> Plugin:
         plugin = await session.get(Plugin, data.name)
+        is_new = plugin is None
         if plugin is None:
             plugin = Plugin(name=data.name)
             session.add(plugin)
@@ -33,6 +40,8 @@ class PluginService:
         plugin.config = data.config
         await session.commit()
         await session.refresh(plugin)
+        registry_cache.add_capability(data.capability)
+        await _lifecycle("installed" if is_new else "updated", plugin.name)
         return plugin
 
     @staticmethod
@@ -44,13 +53,22 @@ class PluginService:
             plugin.config = data.config
         await session.commit()
         await session.refresh(plugin)
+        if data.enabled is True:
+            await _lifecycle("enabled", name)
+        elif data.enabled is False:
+            await _lifecycle("disabled", name)
+        else:
+            await _lifecycle("updated", name)
         return plugin
 
     @staticmethod
     async def remove(session: AsyncSession, name: str) -> None:
         plugin = await PluginService.get(session, name)
+        capability = plugin.capability
         await session.delete(plugin)
         await session.commit()
+        registry_cache.discard_capability(capability)
+        await _lifecycle("removed", name)
 
     @staticmethod
     async def get_config_schema(session: AsyncSession, name: str) -> dict:

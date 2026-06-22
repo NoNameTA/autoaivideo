@@ -11,7 +11,7 @@
 | Unit | hàm/service đơn lẻ | pytest (BE/agent), vitest (FE) |
 | Contract | plugin/adapter, API schema | pytest + JSON Schema |
 | Integration | orchestrator + DB + queue | pytest + SQLite tạm |
-| E2E | luồng tạo batch → job hoàn tất (mock adapter) | pytest/Playwright |
+| E2E | Web→Backend→Queue→Workflow→Agent→Plugin→WS→Dashboard, job hoàn tất (adapter THẬT `cli.run`/`video.ffmpeg`, không mock) | pytest (gated `RUN_E2E=1`) |
 
 ## 2. Backend
 
@@ -46,7 +46,8 @@ Mỗi plugin phải pass bộ test chuẩn do SDK cung cấp:
 
 ## 7. CI gate (xem `13`)
 
-- PR phải pass: lint (ruff/eslint), unit, contract, build.
+- PR phải pass: lint (ruff/eslint), unit, contract, integration, build (3 job: backend, frontend, agent).
+- **E2E (`RUN_E2E=1`) chạy local/opt-in** — cần backend+agent thật + app ngoài (ffmpeg); không bật mặc định trong CI ubuntu.
 - Block merge nếu coverage core giảm dưới ngưỡng.
 - `pip-audit`/`npm audit` không có lỗ hổng high/critical.
 

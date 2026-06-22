@@ -80,6 +80,19 @@ Agent → Server:
 
 Mã lỗi FS: `FORBIDDEN` (ngoài Allowed Folders), `NOT_FOUND`, `FS_ERROR`.
 
+## 4.2 Dashboard Activity Stream (global, không scope)
+
+Backend phát các bản tin **global** (mọi dashboard nhận) cho Activity Stream (SPEC 12 §5):
+
+| type | data |
+|------|------|
+| `activity` | `{ kind, ... }` — `kind` ∈ `job.updated` · `plugin.runtime.{started,progress,finished,failed}` · `plugin.lifecycle.{installed,enabled,disabled,updated,removed,registration_failed}` |
+| `fs.event` | (xem §4.1) — cũng hiển thị trong stream |
+| `agent.updated` | trạng thái agent |
+
+- `plugin.runtime.*` gắn với Job/Workflow (step do plugin thực thi); `plugin.lifecycle.*` thuộc quản trị registry.
+- Job/step theo scope batch (§3) vẫn giữ cho BatchView; Activity Stream dùng kênh global riêng.
+
 ## 5. REST quy ước
 
 - Phân trang: `?limit=&cursor=`; trả `{ items:[], next_cursor }`.

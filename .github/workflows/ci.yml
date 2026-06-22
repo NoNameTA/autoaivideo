@@ -7,6 +7,7 @@ on:
 
 jobs:
   backend:
+    name: Build & Test Backend
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -21,12 +22,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install ruff pytest
-      - name: Lint
+      - name: Lint (ruff)
         run: ruff check .
-      - name: Test
+      - name: Test (pytest, e2e gated off)
         run: pytest -q
+      - name: Summary
+        if: always()
+        run: echo "Backend lint + pytest xong" >> "$GITHUB_STEP_SUMMARY"
 
   frontend:
+    name: Build & Lint Frontend
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,10 +44,16 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npm run lint
-      - run: npm run build
+      - name: Lint (eslint)
+        run: npm run lint
+      - name: Build (vite)
+        run: npm run build
+      - name: Summary
+        if: always()
+        run: echo "Frontend lint + build xong" >> "$GITHUB_STEP_SUMMARY"
 
   agent:
+    name: Build & Test Agent
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,6 +67,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install ruff
-      - name: Lint
+          pip install ruff pytest
+      - name: Lint (ruff)
         run: ruff check .
+      - name: Test (pytest contract + fs + watcher)
+        run: pytest -q
+      - name: Summary
+        if: always()
+        run: echo "Agent lint + pytest xong" >> "$GITHUB_STEP_SUMMARY"

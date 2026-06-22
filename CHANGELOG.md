@@ -4,6 +4,33 @@
 
 ## [Unreleased]
 
+### Phase 7 — Integration & Testing (2026-06-22)
+> SPEC 15. Quyết định người dùng: E2E thật bằng `cli.run`/`video.ffmpeg` (không mock); E2E local-only, CI chạy unit/build; Dashboard Activity Stream phân loại `plugin.runtime.*` + `plugin.lifecycle.*`.
+
+#### Added — Activity Stream (backend)
+- `plugins/registry_cache.py` — cache capability plugin để engine phân biệt step plugin vs built-in.
+- Engine phát **global `activity`**: `job.updated`, `plugin.runtime.{started,progress,finished,failed}` (cho step do plugin chạy).
+- `PluginService` phát `plugin.lifecycle.{installed,enabled,disabled,updated,removed}`; sync cập nhật registry_cache.
+- Pipeline `ffmpeg_demo.json` (1 step `video.ffmpeg`) cho E2E.
+
+#### Added — Dashboard realtime (frontend)
+- `ui` store: buffer `activities` + `pushActivity`. `useWebSocket`: phân loại `activity`/`fs.event`/`agent.updated` → feed.
+- **Dashboard "Hoạt động realtime"**: panel + bộ lọc (Tất cả/Job/Plugin runtime/Plugin lifecycle/FS/Agent), màu phân loại.
+
+#### Added — Tests
+- `tests/test_recovery.py` (integration): resume requeue step đang chạy + agent→offline; ack-timeout requeue.
+- `tests/e2e/test_pipeline_e2e.py` (**gated `RUN_E2E=1`**): backend+agent subprocess thật chạy `ffmpeg_demo` → job completed + asset `out.mp4` thật + Dashboard nhận `plugin.runtime.*` + `job.updated`.
+- conftest: marker `e2e` + skip khi không có `RUN_E2E=1`.
+
+#### Changed — CI / SPEC
+- `.github/workflows/ci.yml`: 3 job (Backend/Frontend/Agent) — install + lint + test/build + summary; agent thêm pytest.
+- SPEC `09 §4.2` (Activity Stream global), SPEC `15` (E2E thật + CI gate).
+
+#### Verified
+- Backend: ruff ✅ · pytest ✅ **28 passed, 1 skipped (e2e)**. Agent: ruff ✅ · pytest ✅ **12 passed**. Frontend: lint ✅ · build ✅ (115KB gzip).
+- **E2E THẬT (`RUN_E2E=1`) ✅**: full pipeline Web→…→Dashboard, job completed + `out.mp4` thật + realtime activity. RESULT PASS.
+- **Dashboard realtime (browser) ✅**: panel Hoạt động realtime hiển thị `job` + `plugin.runtime` thật (đã chụp màn hình).
+
 ### Phase 6.1 — Watch Folder realtime nâng cấp (2026-06-22)
 > Hoàn thiện watchdog theo yêu cầu. Cập nhật SPEC 07 §8 + SPEC 09 §4.1.
 

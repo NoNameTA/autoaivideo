@@ -1,0 +1,13 @@
+{
+  "name": "ffmpeg_demo",
+  "description": "E2E/demo: dùng plugin video.ffmpeg tạo 1 video offline (free, SPEC 06).",
+  "steps": [
+    {
+      "step_key": "render",
+      "adapter": "video.ffmpeg",
+      "config": {
+        "args": ["-f", "lavfi", "-i", "color=c=green:s=320x240:d=1", "out.mp4"]
+      }
+    }
+  ]
+}
