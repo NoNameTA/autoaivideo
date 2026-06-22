@@ -17,3 +17,5 @@ Deploy qua workflow `.github/workflows/frontend-pages.yml` (base = `/<tên-repo>
 Cấu hình backend self-host trong **Settings → API Base URL** trên giao diện.
 
 Site (sau khi bật Pages): https://nonameta.github.io/autoaivideo/
+
+> Deploy tự động qua GitHub Actions khi push vào `main` (frontend).
