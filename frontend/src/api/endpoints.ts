@@ -13,6 +13,7 @@ import type {
   ProjectCreate,
   ProjectUpdate,
 } from "../types/api";
+import type { AllowedFolder, FsEntry, ReadResult, ScanResult } from "../types/fs";
 import { http } from "./client";
 
 export const endpoints = {
@@ -48,4 +49,19 @@ export const endpoints = {
   updatePlugin: (name: string, data: { enabled?: boolean; config?: Record<string, unknown> }) =>
     http.patch<Plugin>(`/api/v1/plugins/${name}`, data),
   removePlugin: (name: string) => http.del(`/api/v1/plugins/${name}`),
+
+  // File Manager (SPEC 07)
+  listAllowed: () => http.get<AllowedFolder[]>("/api/v1/fs/allowed"),
+  addAllowed: (path: string, label: string) =>
+    http.post<AllowedFolder>("/api/v1/fs/allowed", { path, label }),
+  removeAllowed: (id: string) => http.del(`/api/v1/fs/allowed/${id}`),
+  fsScan: (path: string) => http.post<ScanResult>("/api/v1/fs/scan", { path }),
+  fsRead: (path: string) => http.post<ReadResult>("/api/v1/fs/read", { path }),
+  fsMetadata: (path: string) => http.post<FsEntry>("/api/v1/fs/metadata", { path }),
+  fsCopy: (src: string, dst: string) => http.post("/api/v1/fs/copy", { src, dst }),
+  fsMove: (src: string, dst: string) => http.post("/api/v1/fs/move", { src, dst }),
+  fsRename: (path: string, new_name: string) =>
+    http.post("/api/v1/fs/rename", { path, new_name }),
+  fsDelete: (path: string) => http.post("/api/v1/fs/delete", { path }),
+  fsWatch: (path: string, enable: boolean) => http.post("/api/v1/fs/watch", { path, enable }),
 };

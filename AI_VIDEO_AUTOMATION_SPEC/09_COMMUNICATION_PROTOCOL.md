@@ -62,6 +62,24 @@ Server → Agent:
 | `step.cancel` | `{ step_id }` |
 | `config.update` | `{ ... }` |
 
+## 4.1 Kênh File Manager qua `/ws/agent` (SPEC 07)
+
+FS RPC dạng request/response có `request_id` để đối soát; sự kiện watch realtime qua `fs.event`.
+
+Server → Agent:
+| type | data |
+|------|------|
+| `config.update` | `{ allowed_folders: string[] }` — đẩy Allowed Folders xuống agent (Permission Manager) |
+| `fs.request` | `{ request_id, op, params }` — `op` ∈ `scan|read|metadata|copy|move|rename|delete|watch` |
+
+Agent → Server:
+| type | data |
+|------|------|
+| `fs.response` | `{ request_id, ok, result?, error?:{code,message} }` |
+| `fs.event` | `{ type: created\|modified\|deleted\|moved, path, dest_path?, is_directory, ts }` (đã chuẩn hoá + debounce) |
+
+Mã lỗi FS: `FORBIDDEN` (ngoài Allowed Folders), `NOT_FOUND`, `FS_ERROR`.
+
 ## 5. REST quy ước
 
 - Phân trang: `?limit=&cursor=`; trả `{ items:[], next_cursor }`.

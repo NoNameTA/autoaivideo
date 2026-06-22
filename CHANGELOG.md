@@ -4,6 +4,49 @@
 
 ## [Unreleased]
 
+### Phase 6.1 — Watch Folder realtime nâng cấp (2026-06-22)
+> Hoàn thiện watchdog theo yêu cầu. Cập nhật SPEC 07 §8 + SPEC 09 §4.1.
+
+#### Changed — Agent
+- `watcher.py` viết lại: **chuẩn hoá** sự kiện về 4 loại `created/modified/deleted/moved`; **Permission Manager lọc từng sự kiện** trước khi gửi; **reconcile** (watch = đã-yêu-cầu ∩ allowed ∩ thư-mục) → **tự start/stop khi Allowed Folders đổi**.
+- `connection.py`: **coalesce/debounce** sự kiện trùng `(type,path,dest_path)` trong cửa sổ `watch_debounce_ms` (mặc định 200ms) trước khi gửi `fs.event`; `config.update` gọi `watcher.reconcile()`.
+- `fs_manager.PermissionManager`: thêm `is_allowed()` (không raise) cho watcher lọc. Config thêm `watch_debounce_ms`.
+
+#### Added — Tests
+- `agent/tests/test_watcher.py`: chuẩn hoá+lọc loại, coalesce giữ mới nhất, **sự kiện watchdog thật** (tạo file → nhận event), reconcile gỡ watch khi folder rời Allowed Folders.
+
+#### Changed — SPEC
+- `07_FILE_SYSTEM_SPEC.md` §8 (Watch Folder realtime). `09_COMMUNICATION_PROTOCOL.md` §4.1 (fs.request/fs.response/fs.event + config.update allowed_folders).
+
+#### Verified
+- Agent: ruff ✅ · pytest ✅ **12 passed**. Backend: pytest ✅ **26 passed**. Frontend: build ✅.
+- **End-to-end realtime THẬT** ✅: agent watch thư mục → tạo/sửa/xoá file → `fs.event` (created/modified/deleted, chuẩn hoá + coalesce) tới dashboard WS. RESULT PASS.
+
+### Phase 6 — File Manager (2026-06-22)
+> SPEC 07 + 11 §5. Quyết định người dùng: RPC fs.request/fs.response qua /ws/agent; Allowed Folders trong DB đẩy xuống agent; watchdog cho watch realtime.
+
+#### Added — Backend
+- Model `allowed_folders` + migration `141a508530c2`; `schemas/fs.py`; `services/allowed_folder_service.py` (CRUD + `is_within_allowed` chống traversal).
+- `api/ws/fs_rpc.py` — RPC correlation-id qua `/ws/agent` (backend chờ Future).
+- `services/fs_service.py` — validate Allowed Folders (Permission Manager) rồi forward tới agent; `push_allowed` đẩy danh sách xuống agent.
+- `api/rest/fs.py` — `/api/v1/fs/{allowed (CRUD), scan, read, metadata, copy, move, rename, delete, watch}`.
+- `agent_registry`: `first_agent_id` + `send_all`; ws/agent xử lý `fs.response`/`fs.event`, đẩy `config.update{allowed_folders}` khi agent register; lỗi `AGENT_UNAVAILABLE`/`FS_ERROR`.
+
+#### Added — Agent (tích hợp Desktop Agent + Plugin System)
+- `fs_manager.py` — `PermissionManager` (realpath + prefix, chống traversal) + thao tác thật: scan/read/copy/move/rename/delete/metadata.
+- `watcher.py` — Folder Watcher dùng `watchdog`, emit `fs.event` thread-safe về backend.
+- `connection.py` — xử lý `config.update` (cập nhật Allowed Folders), `fs.request` → fs_manager → `fs.response`. Dep `watchdog==6.0.0`.
+
+#### Added — Frontend
+- `types/fs.ts`, endpoints FS; trang **File Manager** thật: quản lý Allowed Folders, duyệt thư mục, Read/Info/Rename/Copy/Move/Delete, bật Watch + nhận `fs.event` realtime.
+
+#### Added — Tests
+- Backend `test_fs.py` (Allowed CRUD, traversal util, scan no-agent→503, ngoài allowed→403). Agent `test_fs_manager.py` (thao tác file thật + từ chối quyền).
+
+#### Verified
+- Backend: ruff ✅ · pytest ✅ **26 passed**. Agent: ruff ✅ · pytest ✅ **8 passed**. Frontend: lint ✅ · `npm run build` ✅ (114KB gzip).
+- **End-to-end THẬT** ✅: backend + agent → thêm Allowed Folder → scan/metadata/read/copy/rename/move/delete file thật + watch bật; path ngoài allowed bị chặn **403**. RESULT PASS.
+
 ### Phase 5 — Plugin System (2026-06-22)
 > SPEC 06, 08, 14. Plugin SDK ổn định + lifecycle + contract; adapter thật cho app verify được trên máy.
 

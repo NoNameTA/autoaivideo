@@ -68,3 +68,12 @@ Mỗi asset ghi 1 dòng trong DB bảng `assets` gồm `path` (tương đối DA
 - `DATA_DIR` không nằm trong repo Git (thêm vào `.gitignore`).
 - Không lưu secret trong file asset/metadata.
 - Đường dẫn luôn validate để chống path traversal (xem `11`).
+
+## 8. Watch Folder (realtime)
+
+- Agent dùng **watchdog** theo dõi thay đổi trong thư mục thuộc **Allowed Folders**.
+- **Chỉ** theo dõi thư mục ⊆ Allowed Folders; mọi sự kiện đi qua **Permission Manager** trước khi gửi (drop nếu nằm ngoài).
+- Agent **chuẩn hoá** sự kiện về 4 loại tối thiểu: `created | modified | deleted | moved`. Định dạng: `{ type, path, dest_path?, is_directory, ts }`.
+- **Debounce/coalesce**: gộp sự kiện trùng `(type, path, dest_path)` trong cửa sổ `watch_debounce_ms` (mặc định 200ms) để giảm trùng lặp.
+- **Auto-reconcile**: khi Allowed Folders hoặc danh sách watch thay đổi (qua `config.update`), agent tự start/stop watcher cho khớp (watch thực tế = đã-yêu-cầu ∩ allowed ∩ là-thư-mục).
+- Sự kiện gửi lên Backend qua WebSocket (`fs.event`, xem `09`); Backend broadcast tới dashboard.

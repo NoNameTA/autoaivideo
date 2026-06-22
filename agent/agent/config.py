@@ -20,6 +20,7 @@ class AgentSettings(BaseSettings):
     heartbeat_interval: int = 30
     step_timeout: int = 600
     capacity: int = 2
+    watch_debounce_ms: int = 200
 
 
 @lru_cache

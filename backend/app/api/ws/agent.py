@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
-from app.api.ws.manager import manager
+from app.api.ws.fs_rpc import fs_rpc
+from app.api.ws.manager import envelope, manager
 from app.core.config import get_settings
 from app.core.errors import UnauthorizedError
 from app.core.security import verify_agent_token
@@ -16,6 +17,7 @@ from app.db.session import SessionLocal
 from app.orchestrator.agent_registry import AgentConn, registry
 from app.orchestrator.engine import engine
 from app.services.agent_service import AgentService
+from app.services.allowed_folder_service import AllowedFolderService
 
 router = APIRouter()
 
@@ -39,6 +41,7 @@ async def ws_agent(websocket: WebSocket, token: str | None = Query(default=None)
             if mtype == "agent.register":
                 async with SessionLocal() as session:
                     agent = await AgentService.register(session, data)
+                    allowed = await AllowedFolderService.paths(session)
                 agent_id = agent.id
                 registry.add(
                     AgentConn(
@@ -47,6 +50,10 @@ async def ws_agent(websocket: WebSocket, token: str | None = Query(default=None)
                         capabilities=list(agent.capabilities),
                         capacity=agent.capacity,
                     )
+                )
+                # Đẩy Allowed Folders xuống agent (SPEC 11 §5).
+                await registry.send(
+                    agent.id, envelope("config.update", {"allowed_folders": allowed})
                 )
                 await manager.broadcast(
                     "agent.updated",
@@ -69,6 +76,15 @@ async def ws_agent(websocket: WebSocket, token: str | None = Query(default=None)
                     data.get("error", "unknown"),
                     bool(data.get("retryable", False)),
                 )
+            elif mtype == "fs.response":
+                fs_rpc.resolve(
+                    data.get("request_id"),
+                    bool(data.get("ok")),
+                    data.get("result"),
+                    data.get("error"),
+                )
+            elif mtype == "fs.event":
+                await manager.broadcast("fs.event", data)
     except WebSocketDisconnect:
         if agent_id:
             registry.remove(agent_id)

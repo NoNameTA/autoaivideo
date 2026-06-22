@@ -53,6 +53,18 @@ class ConflictError(AppError):
     status = 409
 
 
+class AgentUnavailableError(AppError):
+    code = "AGENT_UNAVAILABLE"
+    status = 503
+
+
+class FsError(AppError):
+    """Lỗi thao tác file từ agent (map code/status từ response)."""
+
+    code = "FS_ERROR"
+    status = 400
+
+
 def _envelope(code: str, message: str, details: list[dict[str, Any]], trace_id: str) -> dict:
     return {"error": {"code": code, "message": message, "details": details, "trace_id": trace_id}}
 

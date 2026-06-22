@@ -42,6 +42,13 @@ class AgentRegistry:
         if conn and conn.inflight > 0:
             conn.inflight -= 1
 
+    def first_agent_id(self) -> str | None:
+        return next(iter(self._conns), None)
+
+    async def send_all(self, message: dict) -> None:
+        for agent_id in list(self._conns):
+            await self.send(agent_id, message)
+
     async def send(self, agent_id: str, message: dict) -> bool:
         conn = self._conns.get(agent_id)
         if not conn:
