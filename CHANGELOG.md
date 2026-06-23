@@ -18,8 +18,12 @@
 - 2 workflow: **ghim toàn bộ action sang full commit SHA** (đáp ứng repo policy).
 - Repo settings (owner): bật Actions → "Allow all actions"; bỏ "Require actions pinned to full SHA" (vì `upload-pages-artifact` gọi `upload-artifact` nội bộ bằng tag).
 
-#### Pending
-- **Docker smoke test** — chờ cài Docker trên máy (compose + Dockerfile đã sẵn sàng).
+#### Docker smoke test ✅ (2026-06-23)
+- `docker compose up -d --build` → container Up; `alembic upgrade head` chạy 2 migration trong container; uvicorn lên.
+- Smoke: `/health`=200, `/ready`=200 (DB check), `/api/v1/info` v2.0.0 (env=prod), POST project (auth)=201. **PASS**.
+- Fix: `core/config.py` dùng `NoDecode` cho `cors_origins` (pydantic-settings JSON-decode env list trước validator → lỗi khi `CORS_ORIGINS` là chuỗi trong compose).
+
+**Phase 10 hoàn tất.** Website live + CI xanh + Docker smoke PASS + INSTALL.md verified.
 
 ### Phase 9 — Desktop Agent Full (2026-06-22)
 > SPEC 05 §4. Quyết định người dùng: CDP = raw DevTools Protocol (không Playwright); UIA verify bằng Notepad; plugin qua .exe = ffmpeg + chrome.
