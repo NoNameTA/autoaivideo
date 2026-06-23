@@ -6,6 +6,8 @@ import type {
   Info,
   Job,
   JobDetail,
+  LogEntry,
+  LogQuery,
   Page,
   Plugin,
   PluginRegister,
@@ -46,6 +48,15 @@ export const endpoints = {
   getJob: (id: string) => http.get<JobDetail>(`/api/v1/jobs/${id}`),
   retryJob: (id: string) => http.post<Job>(`/api/v1/jobs/${id}/retry`),
   cancelJob: (id: string) => http.post<Job>(`/api/v1/jobs/${id}/cancel`),
+
+  listLogs: (q: LogQuery = {}) => {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(q)) {
+      if (v !== undefined && v !== "") params.set(k, String(v));
+    }
+    const s = params.toString();
+    return http.get<LogEntry[]>(`/api/v1/logs${s ? `?${s}` : ""}`);
+  },
 
   listAgents: () => http.get<Agent[]>("/api/v1/agents"),
 

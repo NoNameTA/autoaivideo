@@ -69,7 +69,10 @@ events (audit/log) ────────────────┘
 | id PK | step_id FK | priority(int) | state(`pending|leased|done`) | lease_until | enqueued_at |
 
 ### events (audit/log)
-| id PK | trace_id | entity_type | entity_id | type | data(json) | created_at |
+| id PK | trace_id | entity_type | entity_id | type | level | data(json) | created_at |
+
+`level` ∈ `info|warn|error|debug` — suy ra từ loại event lúc ghi (04 §7). Index `level` để lọc
+trang Logs. `data` chứa context denormalize (`batch_id`/`project_id`/`capability`…) cho lọc/tìm kiếm.
 
 ## 3. Index chính
 

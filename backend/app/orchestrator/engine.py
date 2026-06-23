@@ -30,6 +30,7 @@ from app.orchestrator.agent_registry import registry
 from app.orchestrator.dispatcher import build_assign
 from app.orchestrator.retry import backoff_seconds, should_retry
 from app.plugins.registry_cache import is_plugin_capability
+from app.services.event_service import EventService
 
 log = logging.getLogger("orchestrator")
 
@@ -307,7 +308,11 @@ class OrchestratorEngine:
             id_=job.batch_id,
         )
         await self._activity(
-            "job.updated", job_id=job.id, status=job.status, progress=job.progress
+            "job.updated",
+            job_id=job.id,
+            batch_id=job.batch_id,
+            status=job.status,
+            progress=job.progress,
         )
 
     async def _has_open_queue(self, session: AsyncSession, step_id: str) -> bool:
@@ -345,8 +350,8 @@ class OrchestratorEngine:
         )
 
     async def _activity(self, kind: str, **data) -> None:
-        """Phát hoạt động lên kênh global cho Dashboard Activity Stream (SPEC 09 §4.1)."""
-        await manager.broadcast("activity", {"kind": kind, **data})
+        """Ghi audit-log (DB) + phát kênh global Activity Stream (SPEC 04 §7, 09 §4.1)."""
+        await EventService.from_activity(kind, data)
 
     async def _broadcast_step(self, step: Step, job: Job) -> None:
         await manager.broadcast(

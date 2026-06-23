@@ -3,15 +3,15 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.ws.manager import manager
 from app.core.errors import NotFoundError
 from app.models.plugin import Plugin
 from app.plugins import registry_cache
 from app.schemas.plugin import PluginRegister, PluginUpdate
+from app.services.event_service import EventService
 
 
 async def _lifecycle(action: str, name: str) -> None:
-    await manager.broadcast("activity", {"kind": f"plugin.lifecycle.{action}", "name": name})
+    await EventService.from_activity(f"plugin.lifecycle.{action}", {"name": name})
 
 
 class PluginService:

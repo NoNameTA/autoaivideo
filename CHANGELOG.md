@@ -4,6 +4,37 @@
 
 ## [Unreleased]
 
+### UAT — Trang chức năng (3/5): Logs (2026-06-23)
+> **Điểm thiết kế (đã chốt với user):** bảng `events` (SPEC 10 §2 = audit/log) trước đây
+> chỉ dùng cho idempotency key; activity chỉ broadcast WS, **không persist**, và **chưa có
+> trường `level`**. Quyết định: **persist mọi activity vào `events`** (biến nó thành audit-log
+> thật) + **thêm cột `level` suy ra từ loại event lúc ghi** (`level_for`). Không thêm bảng mới.
+> Cập nhật SPEC 04 §7 + 10 §2.
+
+#### Added — Backend
+- Cột `events.level` (`info|warn|error|debug`, có index) + migration `b2c4e6f80a11`. Suy ở
+  thời điểm ghi từ loại event (`*.failed`→error, retry/timeout/disabled/removed/cancelled→warn,
+  progress→debug, còn lại→info).
+- `services/event_service.py` — `EventService`: `level_for` (thuần), `from_activity`
+  (suy entity_type/entity_id), `record` (transaction riêng: persist + broadcast `activity`,
+  **làm giàu** `batch_id`/`project_id` để lọc), `list` (lọc level/category/project/batch/plugin/
+  trace_id/search qua `json_extract`). Loại `idempotency_batch` không hiện ở Logs.
+- `GET /api/v1/logs` (`api/rest/logs.py`, `schemas/log.py`). Engine `_activity` + plugin
+  `_lifecycle` nay đi qua `EventService` (vừa ghi DB vừa phát realtime); `job.updated` kèm `batch_id`.
+
+#### Added — Frontend
+- Trang **Logs** thật (`pages/Logs.tsx`): bảng audit-log mới-nhất-trước, **lọc theo level**
+  (tabs có đếm) + **nhóm** (job/step/plugin/agent/fs/system) + **tìm kiếm** (debounce, gồm
+  trace_id/batch/project), badge màu theo level, link Job/Batch, chỉ báo `● live`, scroll dính header.
+- Realtime: `useWebSocket` invalidate key `["logs"]` khi có `activity`/`fs.event`/`agent.updated`.
+  Types `LogEntry`/`LogQuery`, endpoint `listLogs`, hook `useLogs`.
+
+#### Verified
+- Backend ruff ✅ · pytest ✅ **38 passed** (+4 `test_logs`: level_for, persist+lọc API, lọc
+  batch/project, loại event nội bộ) · 1 skipped (e2e). Frontend lint ✅ · build ✅ (118.69 KB gzip).
+- Browser (thật): trang Logs hiển thị event thật, lọc level + đếm số đúng, **realtime tự cập nhật
+  qua WS không refresh** (sinh event qua API → bảng thêm dòng), không lỗi console.
+
 ### UAT — Trang chức năng (2/5): Queue (2026-06-23)
 #### Added — Backend
 - `JobService.list_all` + `GET /api/v1/jobs` (list job toàn cục, lọc `status` + `search` job/batch id, mới nhất trước). Test `test_jobs.py`.

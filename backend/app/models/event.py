@@ -19,5 +19,7 @@ class Event(Base):
     entity_type: Mapped[str] = mapped_column(String(40), index=True)
     entity_id: Mapped[str] = mapped_column(String(40), index=True)
     type: Mapped[str] = mapped_column(String(60))
+    # Mức độ log suy ra từ loại event lúc ghi (SPEC 04 §7): info|warn|error|debug.
+    level: Mapped[str] = mapped_column(String(10), index=True, default="info")
     data: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
   BatchCreate,
+  LogQuery,
   PluginRegister,
   ProjectCreate,
   ProjectUpdate,
@@ -106,6 +107,13 @@ export function useCancelJob() {
       qc.invalidateQueries({ queryKey: qk.job(job.id) });
       qc.invalidateQueries({ queryKey: ["jobs-all"] });
     },
+  });
+}
+
+export function useLogs(q: LogQuery) {
+  return useQuery({
+    queryKey: ["logs", q],
+    queryFn: () => endpoints.listLogs(q),
   });
 }
 

@@ -54,6 +54,11 @@ import app.main as _main_module  # noqa: E402
 _main_module.SessionLocal = _Session
 _main_module.db_engine = _engine
 
+# EventService ghi audit-log bằng SessionLocal riêng -> trỏ về DB test để cô lập.
+import app.services.event_service as _event_module  # noqa: E402
+
+_event_module.SessionLocal = _Session
+
 
 async def _reset_schema() -> None:
     async with _engine.begin() as conn:

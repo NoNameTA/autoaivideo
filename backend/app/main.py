@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app import __version__
-from app.api.rest import agents, batches, fs, health, jobs, pipelines, plugins, projects
+from app.api.rest import agents, batches, fs, health, jobs, logs, pipelines, plugins, projects
 from app.api.ws import agent as ws_agent
 from app.api.ws import dashboard as ws_dashboard
 from app.core.config import get_settings
@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
     app.include_router(agents.router)
     app.include_router(plugins.router)
     app.include_router(pipelines.router)
+    app.include_router(logs.router)
     app.include_router(fs.router)
     app.include_router(ws_dashboard.router)
     app.include_router(ws_agent.router)

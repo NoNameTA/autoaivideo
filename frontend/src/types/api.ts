@@ -131,3 +131,28 @@ export interface PluginRegister {
   manifest?: Record<string, unknown>;
   config?: Record<string, unknown>;
 }
+
+// Audit-log cho trang Logs (SPEC 04 §7, 10 §2). `level` suy từ loại event ở backend.
+export type LogLevel = "info" | "warn" | "error" | "debug";
+
+export interface LogEntry {
+  id: string;
+  level: LogLevel;
+  category: string;
+  entity_id: string;
+  type: string;
+  trace_id: string | null;
+  data: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface LogQuery {
+  level?: LogLevel;
+  category?: string;
+  project_id?: string;
+  batch_id?: string;
+  plugin?: string;
+  trace_id?: string;
+  search?: string;
+  limit?: number;
+}

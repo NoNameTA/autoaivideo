@@ -91,7 +91,14 @@ CORS_ORIGINS=http://localhost:5173
 
 ## 7. Logging & lỗi
 
-- Log JSON, có `trace_id`, `job_id`, `step_id`.
+- Log JSON ra stdout, có `trace_id`, `job_id`, `step_id`.
+- **Audit-log bền (trang Logs)**: mọi activity (engine + plugin lifecycle) được **persist vào
+  bảng `events`** (10 §2) ngoài việc broadcast realtime kênh `activity` (09 §4.2). Mỗi event có
+  **`level`** (`info|warn|error|debug`) **suy ra từ loại event lúc ghi** (`*.failed`→error;
+  retry/timeout/disabled/removed/cancelled→warn; progress→debug; còn lại→info) — KHÔNG do caller
+  truyền. Event được làm giàu `batch_id`/`project_id` để lọc theo project/batch/plugin/level.
+  `GET /api/v1/logs` (lọc level/category/project/batch/plugin/trace_id/search). Event nội bộ
+  (`idempotency_batch`) không hiển thị ở trang Logs.
 - Exception → handler chuẩn trả lỗi theo `09 §6`.
 - Phân loại lỗi adapter: `TransientError` vs `PermanentError` (base class trong plugins).
 
