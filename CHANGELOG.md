@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### UAT — Trang chức năng (2/5): Queue (2026-06-23)
+#### Added — Backend
+- `JobService.list_all` + `GET /api/v1/jobs` (list job toàn cục, lọc `status` + `search` job/batch id, mới nhất trước). Test `test_jobs.py`.
+#### Added — Frontend
+- Trang **Queue** thật: bảng job realtime (WS invalidate `jobs-all`), **filter tabs có đếm số** + **tìm kiếm** (debounce), **retry/cancel** theo trạng thái, link Job/Batch. Loading/empty/error, responsive (overflow-x).
+#### Verified
+- Backend ruff ✅ · pytest ✅ **34 passed** (+2). Frontend lint ✅ · build ✅. Browser: Queue hiển thị 6 job + filter count + search (đã chụp).
+
 ### UAT — Trang chức năng (1/5): Workflow (2026-06-23)
 > User chốt: editor đầy đủ (vượt SPEC V2.0); cập nhật SPEC 02 §4 + 03 §5. Pipeline lưu DB.
 

@@ -80,11 +80,21 @@ export function useJob(id: string) {
   return useQuery({ queryKey: qk.job(id), queryFn: () => endpoints.getJob(id) });
 }
 
+export function useJobsAll(status?: string, search?: string) {
+  return useQuery({
+    queryKey: ["jobs-all", status ?? "all", search ?? ""],
+    queryFn: () => endpoints.listJobs({ status, search }),
+  });
+}
+
 export function useRetryJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => endpoints.retryJob(id),
-    onSuccess: (job) => qc.invalidateQueries({ queryKey: qk.job(job.id) }),
+    onSuccess: (job) => {
+      qc.invalidateQueries({ queryKey: qk.job(job.id) });
+      qc.invalidateQueries({ queryKey: ["jobs-all"] });
+    },
   });
 }
 
@@ -92,7 +102,10 @@ export function useCancelJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => endpoints.cancelJob(id),
-    onSuccess: (job) => qc.invalidateQueries({ queryKey: qk.job(job.id) }),
+    onSuccess: (job) => {
+      qc.invalidateQueries({ queryKey: qk.job(job.id) });
+      qc.invalidateQueries({ queryKey: ["jobs-all"] });
+    },
   });
 }
 

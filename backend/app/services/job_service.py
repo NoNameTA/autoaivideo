@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -10,6 +10,22 @@ from app.models.job import Job
 
 
 class JobService:
+    @staticmethod
+    async def list_all(
+        session: AsyncSession,
+        limit: int,
+        status: JobStatus | None,
+        search: str | None,
+    ) -> list[Job]:
+        """Danh sách job toàn cục cho trang Queue (mới nhất trước; lọc status + tìm kiếm)."""
+        stmt = select(Job).order_by(Job.id.desc()).limit(limit)
+        if status is not None:
+            stmt = stmt.where(Job.status == status)
+        if search:
+            term = f"%{search}%"
+            stmt = stmt.where(or_(Job.id.like(term), Job.batch_id.like(term)))
+        return list((await session.execute(stmt)).scalars().all())
+
     @staticmethod
     async def get_detail(session: AsyncSession, job_id: str) -> Job:
         stmt = select(Job).where(Job.id == job_id).options(selectinload(Job.steps))

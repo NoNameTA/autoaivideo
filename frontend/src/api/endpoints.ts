@@ -35,6 +35,14 @@ export const endpoints = {
       `/api/v1/batches/${id}/jobs${status ? `?status=${status}` : ""}`,
     ),
 
+  listJobs: (params: { status?: string; search?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params.status) q.set("status", params.status);
+    if (params.search) q.set("search", params.search);
+    if (params.limit) q.set("limit", String(params.limit));
+    const s = q.toString();
+    return http.get<Job[]>(`/api/v1/jobs${s ? `?${s}` : ""}`);
+  },
   getJob: (id: string) => http.get<JobDetail>(`/api/v1/jobs/${id}`),
   retryJob: (id: string) => http.post<Job>(`/api/v1/jobs/${id}/retry`),
   cancelJob: (id: string) => http.post<Job>(`/api/v1/jobs/${id}/cancel`),

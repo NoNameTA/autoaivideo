@@ -62,6 +62,7 @@ export function useWebSocketConnection(): void {
         queryClient.invalidateQueries({ queryKey: ["batchJobs"] });
         queryClient.invalidateQueries({ queryKey: ["job"] });
         queryClient.invalidateQueries({ queryKey: ["batch"] });
+        queryClient.invalidateQueries({ queryKey: ["jobs-all"] });
       }
       // Dashboard Activity Stream (SPEC 09 §4.1, 12 §5).
       pushActivity(msg);
