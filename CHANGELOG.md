@@ -4,6 +4,29 @@
 
 ## [Unreleased]
 
+### UAT — Nghiệm thu End-to-End toàn hệ thống (2026-06-23)
+> 🧪 Chạy **hệ thống THẬT** (Backend uvicorn + Desktop Agent `aivideo-agent.exe` + 5 plugin +
+> Frontend) — **không mock, không bypass**. Báo cáo đầy đủ: [`UAT_REPORT.md`](UAT_REPORT.md).
+
+#### Kết quả — 19/20 hạng mục PASS
+- **Stack thật:** Agent `.exe` kết nối WS `/ws/agent`, đăng ký 6 capability (cli.run, video.ffmpeg,
+  web.cdp, web.cdp.edge, desktop.notepad, media.download). Tắt .exe → backend tự set **offline**.
+- **Workflow E2E:** `ffmpeg_demo` → job completed 100% + **out.mp4 thật (2326B)**; `agent_full_demo`
+  → ffmpeg + **Chrome CDP** (screenshot.png) completed. Plugin FFmpeg & Chrome/CDP verify **live**.
+- **5 trang + Dashboard:** Workflow (5 pipeline, DAG), Queue (job realtime + filter đếm),
+  Logs (32 event persist DB, lọc level, **còn sau hard-reload**), Statistics (KPI/throughput/adapter
+  từ data thật), External Apps (5 app connected + **Test kết nối ok=true**), Dashboard realtime
+  (`plugin.runtime.*`/`job.updated`/`agent.updated` live).
+- **Retry/Cancel:** failed→queued, queued→cancelled — PASS. Validation chuẩn (`limit>200`→envelope lỗi).
+
+#### Lỗi phát hiện
+- ⚠️ **[F-1] Notepad UIA chạy live FAIL** (Win11 dùng Notepad UWP + agent chạy nền) — plugin vẫn
+  nạp/kết nối/test OK; **không chặn** luồng lõi. Đề xuất sửa `agent/drivers/uia.py` (match
+  AutomationId/ClassName cho Win11, hoặc đổi app demo UIA). Xếp backlog.
+
+#### Kết luận
+- ✅ **ĐẠT nghiệm thu các tiêu chí lõi.** Chờ chủ dự án duyệt trước khi bắt đầu **Google Sheets Adapter**.
+
 ### UAT — Trang chức năng (5/5): External Applications (2026-06-23)
 > 🏁 **Hoàn tất UAT 5/5 trang** (Workflow · Queue · Logs · Statistics · External Apps đều làm thật).
 > External App (SPEC 06) = app ngoài bọc bởi Adapter (plugin), phân loại theo `type`
