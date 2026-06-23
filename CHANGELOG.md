@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-23
+
+> 🏁 **Bản phát hành ổn định đầu tiên** — hoàn thành Phase 1–10. Nền tảng tự động hoá video AI chạy thật end-to-end + **deploy thật** (GitHub Pages live, CI xanh, Docker smoke PASS).
+
+### Release notes — v1.0.0
+- **Frontend** (Vite/React/TS/Tailwind) → **GitHub Pages live**: https://nonameta.github.io/autoaivideo/ (BrowserRouter + `404.html` SPA fallback, refresh mọi route OK).
+- **Backend** (FastAPI + SQLAlchemy + SQLite + WebSocket): REST CRUD (project/batch/job/agent/plugin), orchestrator (durable queue, state machine, retry/backoff, ack/heartbeat timeout, resume), WS hub, plugin registry, **File Manager + Permission Manager** (Allowed Folders). Docker-ready (`docker compose` + alembic entrypoint).
+- **Desktop Agent** (Python + bản `.exe` PyInstaller): WS client (reconnect), drivers **Process / CDP (raw DevTools) / UIA (pywinauto)**, File Manager + **Watch realtime** (watchdog, chuẩn hoá + debounce).
+- **Plugin SDK** + plugin thật: `ffmpeg`, `yt-dlp`, `chrome`, `edge`, `notepad` (contract test, free-only gate).
+- **Dashboard realtime**: job/progress, `fs.event`, `plugin.runtime.*`, `plugin.lifecycle.*` (Activity Stream có bộ lọc).
+- **Chất lượng & vận hành**: CI 3 job (lint + pytest + build), E2E thật (gated `RUN_E2E=1`), Docker smoke PASS, INSTALL.md verified trên môi trường sạch.
+- Tag liên quan: `v0.8.0` (Deployment), `v0.9.0` (Desktop Agent Full).
+
+### Roadmap sau v1.0.0
+- **UAT** (User Acceptance Testing) — dùng thực tế, sửa lỗi phát sinh.
+- Sau UAT ổn định → Adapter: **1) Google Sheets · 2) OBS · 3) Bulk Video Studio**.
+- **Prompt Engine** — sau khi các adapter cốt lõi hoàn thiện.
+
 ### Phase 10 — Real Deployment (2026-06-22)
 #### Done
 - Xác minh **INSTALL.md từ môi trường sạch**: Backend (venv + alembic + /health=200), Frontend (`npm ci` + build + 404.html), Agent (venv + chạy), Agent .exe (Phase 9).
