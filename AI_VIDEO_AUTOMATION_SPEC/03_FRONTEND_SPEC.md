@@ -51,7 +51,7 @@ frontend/src/
 - `InputImporter` — upload CSV, map cột → biến pipeline, validate, preview.
 - `AgentCard` — trạng thái agent + capability badge.
 - `PluginConfigForm` — form sinh động từ JSON Schema của plugin (`08`).
-- `PipelineEditor` — kéo-thả/cấu hình step (V2.1+, V2.0 chỉ chọn template).
+- `PipelineEditor` — **trang Workflow**: tạo/sửa/xoá pipeline (thêm/xoá/sắp xếp step, chọn adapter, config JSON), chạy pipeline (tạo batch), xem DAG các step. Pipeline lưu DB (CRUD `/api/v1/pipelines`), seed built-in từ JSON. *(Kéo-thả trực quan để V2.1+.)*
 
 ## 6. Xử lý lỗi & trạng thái rỗng
 

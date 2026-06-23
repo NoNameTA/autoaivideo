@@ -104,6 +104,33 @@ export function usePlugins() {
   return useQuery({ queryKey: qk.plugins, queryFn: endpoints.listPlugins });
 }
 
+export function usePipelines() {
+  return useQuery({ queryKey: ["pipelines"], queryFn: endpoints.listPipelines });
+}
+
+export function useSavePipeline() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: {
+      editing: boolean;
+      name: string;
+      data: { description: string; steps: { step_key: string; adapter: string; config: Record<string, unknown> }[] };
+    }) =>
+      args.editing
+        ? endpoints.updatePipeline(args.name, args.data)
+        : endpoints.createPipeline({ name: args.name, ...args.data }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pipelines"] }),
+  });
+}
+
+export function useDeletePipeline() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => endpoints.deletePipeline(name),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pipelines"] }),
+  });
+}
+
 export function useRegisterPlugin() {
   const qc = useQueryClient();
   return useMutation({

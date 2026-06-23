@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+### UAT — Trang chức năng (1/5): Workflow (2026-06-23)
+> User chốt: editor đầy đủ (vượt SPEC V2.0); cập nhật SPEC 02 §4 + 03 §5. Pipeline lưu DB.
+
+#### Added — Backend
+- Model `pipelines` + migration `793d0effa4d0`; `schemas/pipeline.py`; `services/pipeline_service.py` (list/get/create/update/delete + `get_steps` ưu tiên DB→fallback JSON + `sync_builtins` seed).
+- REST `/api/v1/pipelines` (CRUD + `POST /{name}/run` = tạo batch). Seed built-in lúc khởi động.
+- `batch_service` resolve step từ `PipelineService.get_steps` (thay vì chỉ JSON).
+
+#### Added — Frontend
+- Trang **Workflow** thật: list pipeline + **DAG các step**, editor tạo/sửa (thêm/xoá/sắp xếp step, adapter datalist, config JSON), xoá, **Run** (chọn project + inputs → batch → BatchView). Loading/empty/error, responsive.
+
+#### Verified
+- Backend ruff ✅ · pytest ✅ **32 passed** (+4 pipeline). Frontend lint ✅ · build ✅.
+- Browser: trang Workflow hiển thị 4 pipeline built-in + DAG thật (đã chụp).
+
 ## [1.0.0] - 2026-06-23
 
 > 🏁 **Bản phát hành ổn định đầu tiên** — hoàn thành Phase 1–10. Nền tảng tự động hoá video AI chạy thật end-to-end + **deploy thật** (GitHub Pages live, CI xanh, Docker smoke PASS).

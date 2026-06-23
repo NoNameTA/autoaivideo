@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app import __version__
-from app.api.rest import agents, batches, fs, health, jobs, plugins, projects
+from app.api.rest import agents, batches, fs, health, jobs, pipelines, plugins, projects
 from app.api.ws import agent as ws_agent
 from app.api.ws import dashboard as ws_dashboard
 from app.core.config import get_settings
@@ -20,6 +20,7 @@ from app.db.session import SessionLocal
 from app.db.session import engine as db_engine
 from app.orchestrator.engine import engine as orchestrator
 from app.plugins.loader import sync_plugins
+from app.services.pipeline_service import PipelineService
 
 log = logging.getLogger("app")
 
@@ -32,7 +33,8 @@ async def lifespan(_: FastAPI):
         await conn.execute(text("SELECT 1"))
     async with SessionLocal() as session:
         synced = await sync_plugins(session)
-    log.info("Đồng bộ %d plugin từ plugins/", synced)
+        seeded = await PipelineService.sync_builtins(session)
+    log.info("Đồng bộ %d plugin, seed %d pipeline built-in", synced, seeded)
     await orchestrator.start()
     log.info("Backend khởi động xong")
     yield
@@ -60,6 +62,7 @@ def create_app() -> FastAPI:
     app.include_router(jobs.router)
     app.include_router(agents.router)
     app.include_router(plugins.router)
+    app.include_router(pipelines.router)
     app.include_router(fs.router)
     app.include_router(ws_dashboard.router)
     app.include_router(ws_agent.router)

@@ -13,9 +13,9 @@ from app.models.job import Job
 from app.models.project import Project
 from app.models.step import Step
 from app.orchestrator import queue
-from app.orchestrator.templates import get_template_steps
 from app.schemas.batch import BatchCreate
 from app.services.pagination import paginate
+from app.services.pipeline_service import PipelineService
 
 _IDEMPOTENCY_ENTITY = "idempotency_batch"
 
@@ -43,7 +43,7 @@ class BatchService:
             raise NotFoundError(f"Project '{project_id}' không tồn tại")
 
         pipeline = data.pipeline or project.default_pipeline
-        step_defs = get_template_steps(pipeline)  # NotFoundError nếu template sai
+        step_defs = await PipelineService.get_steps(session, pipeline)  # NotFoundError nếu sai
 
         # Toàn bộ trong một transaction (SPEC 10 §4).
         batch = Batch(

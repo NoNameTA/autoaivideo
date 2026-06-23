@@ -92,7 +92,7 @@ steps:
   - id: export      adapter: export.local         in: final.mp4    out: export/
 ```
 
-Template lưu dạng YAML/JSON trong DB và trên đĩa (`07`). Adapter resolve qua Plugin SDK (`08`).
+Pipeline lưu trong **bảng `pipelines` (DB)** — CRUD qua `/api/v1/pipelines` (tạo/sửa/xoá/chạy ở trang Workflow). Built-in template (JSON trên đĩa) được **seed vào DB lúc khởi động** (insert-if-missing); `get_steps` ưu tiên DB, fallback JSON. Adapter resolve qua Plugin SDK (`08`).
 
 ## 5. Giao tiếp giữa các thành phần
 

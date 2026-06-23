@@ -14,6 +14,7 @@ import type {
   ProjectUpdate,
 } from "../types/api";
 import type { AllowedFolder, FsEntry, ReadResult, ScanResult } from "../types/fs";
+import type { Pipeline, PipelineInput } from "../types/pipeline";
 import { http } from "./client";
 
 export const endpoints = {
@@ -64,4 +65,13 @@ export const endpoints = {
     http.post("/api/v1/fs/rename", { path, new_name }),
   fsDelete: (path: string) => http.post("/api/v1/fs/delete", { path }),
   fsWatch: (path: string, enable: boolean) => http.post("/api/v1/fs/watch", { path, enable }),
+
+  // Pipelines / Workflow (SPEC 02 §4)
+  listPipelines: () => http.get<Pipeline[]>("/api/v1/pipelines"),
+  createPipeline: (data: PipelineInput) => http.post<Pipeline>("/api/v1/pipelines", data),
+  updatePipeline: (name: string, data: { description?: string; steps?: PipelineInput["steps"] }) =>
+    http.patch<Pipeline>(`/api/v1/pipelines/${name}`, data),
+  deletePipeline: (name: string) => http.del(`/api/v1/pipelines/${name}`),
+  runPipeline: (name: string, body: { project_id: string; name: string; inputs: unknown[] }) =>
+    http.post<{ id: string }>(`/api/v1/pipelines/${name}/run`, body),
 };
