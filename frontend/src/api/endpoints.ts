@@ -3,6 +3,8 @@ import type {
   Agent,
   Batch,
   BatchCreate,
+  ExternalApp,
+  ExternalAppTestResult,
   Info,
   Job,
   JobDetail,
@@ -60,6 +62,10 @@ export const endpoints = {
   },
 
   getStats: () => http.get<Stats>("/api/v1/stats"),
+
+  listExternalApps: () => http.get<ExternalApp[]>("/api/v1/external-apps"),
+  testExternalApp: (name: string) =>
+    http.post<ExternalAppTestResult>(`/api/v1/external-apps/${name}/test`),
 
   listAgents: () => http.get<Agent[]>("/api/v1/agents"),
 

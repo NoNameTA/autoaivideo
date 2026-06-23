@@ -121,6 +121,14 @@ export function useStats() {
   return useQuery({ queryKey: ["stats"], queryFn: endpoints.getStats });
 }
 
+export function useExternalApps() {
+  return useQuery({ queryKey: ["external-apps"], queryFn: endpoints.listExternalApps });
+}
+
+export function useTestExternalApp() {
+  return useMutation({ mutationFn: (name: string) => endpoints.testExternalApp(name) });
+}
+
 export function useAgents() {
   return useQuery({ queryKey: qk.agents, queryFn: endpoints.listAgents });
 }

@@ -182,3 +182,30 @@ export interface Stats {
   adapters: AdapterStat[];
   generated_at: string;
 }
+
+// External Apps — adapter bọc app ngoài (SPEC 06).
+export type ConnectionState = "connected" | "no_agent" | "disabled";
+
+export interface ConnectionStatus {
+  status: ConnectionState;
+  online_agents: string[];
+  capacity_free: boolean;
+}
+
+export interface ExternalApp {
+  name: string;
+  capability: string;
+  type: string;
+  version: string;
+  enabled: boolean;
+  free: boolean;
+  license: string | null;
+  source_url: string | null;
+  connection: ConnectionStatus;
+}
+
+export interface ExternalAppTestResult {
+  ok: boolean;
+  reason: string;
+  agents: string[];
+}

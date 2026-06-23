@@ -37,6 +37,16 @@ class AgentRegistry:
                 return conn
         return None
 
+    def online_for(self, capability: str) -> list[AgentConn]:
+        """Agent đang online (socket mở) có khai báo capability này (SPEC 06 §7)."""
+        return [c for c in self._conns.values() if capability in c.capabilities]
+
+    def has_free_slot(self, capability: str) -> bool:
+        return any(
+            capability in c.capabilities and c.inflight < c.capacity
+            for c in self._conns.values()
+        )
+
     def dec_inflight(self, agent_id: str) -> None:
         conn = self._conns.get(agent_id)
         if conn and conn.inflight > 0:

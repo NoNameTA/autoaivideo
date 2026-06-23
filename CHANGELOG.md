@@ -4,6 +4,33 @@
 
 ## [Unreleased]
 
+### UAT — Trang chức năng (5/5): External Applications (2026-06-23)
+> 🏁 **Hoàn tất UAT 5/5 trang** (Workflow · Queue · Logs · Statistics · External Apps đều làm thật).
+> External App (SPEC 06) = app ngoài bọc bởi Adapter (plugin), phân loại theo `type`
+> (web-cdp/desktop-uia/cli-process/local-http). Trang này là **view vận hành**: loại tích hợp +
+> **trạng thái kết nối** (agent online có capability) + **test kết nối** — khác Plugin Manager (lifecycle).
+
+#### Added — Backend
+- `services/external_app_service.py` — `ExternalAppService.list` (suy từ plugins + `connection`
+  từ agent registry live: connected/no_agent/disabled) + `test` (**test kết nối THẬT**: free policy
+  → enabled → có agent online hỗ trợ capability + còn slot; phản ánh khả năng dispatch thực tế,
+  không mock). `AgentRegistry.online_for`/`has_free_slot`.
+- `GET /api/v1/external-apps` + `POST /api/v1/external-apps/{name}/test`
+  (`api/rest/external_apps.py`, `schemas/external_app.py`).
+
+#### Added — Frontend
+- Trang **External Applications** thật (`pages/ExternalApps.tsx`): lọc theo **loại tích hợp**,
+  card mỗi app (loại/capability/version/enabled/free/license/nguồn↗), **badge trạng thái kết nối**,
+  nút **Test kết nối** (kết quả inline + toast). Realtime: `agent.updated` invalidate `["external-apps"]`.
+  Types `ExternalApp`/`ExternalAppTestResult`, endpoint + hook.
+
+#### Verified
+- Backend ruff ✅ · pytest ✅ **44 passed** (+4 `test_external_apps`: list, test disabled/no_agent/
+  connected/404) · 1 skipped. Frontend lint ✅ · build ✅ (120.80 KB gzip).
+- Browser (thật, 5 plugin thật trong DB): 5 app phân loại đúng (cli-process/desktop-uia/web-cdp),
+  lọc theo loại, trạng thái kết nối, **Test kết nối trả kết quả thật** ("chưa có agent online…"),
+  không lỗi (đã chụp).
+
 ### UAT — Trang chức năng (4/5): Statistics (2026-06-23)
 > Thống kê từ **DATA THẬT** jobs/steps (SPEC 02 §7). Không dữ liệu giả. Biểu đồ **SVG tự vẽ**
 > (không thêm dependency — giữ bundle nhẹ). Dashboard giữ KPI realtime + activity; Statistics là

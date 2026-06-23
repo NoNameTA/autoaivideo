@@ -13,6 +13,7 @@ from app import __version__
 from app.api.rest import (
     agents,
     batches,
+    external_apps,
     fs,
     health,
     jobs,
@@ -76,6 +77,7 @@ def create_app() -> FastAPI:
     app.include_router(pipelines.router)
     app.include_router(logs.router)
     app.include_router(stats.router)
+    app.include_router(external_apps.router)
     app.include_router(fs.router)
     app.include_router(ws_dashboard.router)
     app.include_router(ws_agent.router)

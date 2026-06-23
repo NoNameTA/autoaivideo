@@ -58,6 +58,8 @@ export function useWebSocketConnection(): void {
       // Realtime -> làm mới cache liên quan (SPEC 09 §3).
       if (msg.type === "agent.updated") {
         queryClient.invalidateQueries({ queryKey: qk.agents });
+        // Kết nối External Apps phụ thuộc agent online (SPEC 06 §7).
+        queryClient.invalidateQueries({ queryKey: ["external-apps"] });
       } else if (msg.type.startsWith("batch.") || msg.type.startsWith("job.") || msg.type.startsWith("step.")) {
         queryClient.invalidateQueries({ queryKey: ["batchJobs"] });
         queryClient.invalidateQueries({ queryKey: ["job"] });
