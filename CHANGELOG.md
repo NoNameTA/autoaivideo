@@ -4,6 +4,30 @@
 
 ## [Unreleased]
 
+### UAT — Trang chức năng (4/5): Statistics (2026-06-23)
+> Thống kê từ **DATA THẬT** jobs/steps (SPEC 02 §7). Không dữ liệu giả. Biểu đồ **SVG tự vẽ**
+> (không thêm dependency — giữ bundle nhẹ). Dashboard giữ KPI realtime + activity; Statistics là
+> trang phân tích tổng hợp (không trùng).
+
+#### Added — Backend
+- `services/stats_service.py` — `StatsService.compute`: job/step theo status, **fail_rate**
+  (failed/(completed+failed)), **throughput** (job completed/ngày, 14 ngày, điền 0), **adapter
+  stats** (count/failed/avg_seconds từ `finished_at−started_at`). Tổng hợp Python (portable
+  SQLite↔PG, tránh hàm dialect).
+- `GET /api/v1/stats` (`api/rest/stats.py`, `schemas/stats.py`).
+
+#### Added — Frontend
+- Trang **Statistics** thật (`pages/Statistics.tsx`): KPI (tổng job/hoàn tất/tỉ lệ lỗi/tổng step),
+  thanh phân bố job+step theo status (màu SPEC 12 §4), **biểu đồ throughput SVG cột**, bảng hiệu
+  năng adapter (số lần/lỗi%/thời gian TB + thanh). Realtime qua `useWebSocket` invalidate `["stats"]`.
+  Types `Stats`/`AdapterStat`/`ThroughputPoint`, endpoint `getStats`, hook `useStats`.
+
+#### Verified
+- Backend ruff ✅ · pytest ✅ **40 passed** (+2 `test_stats`: rỗng + có data: counts/fail_rate/
+  avg_seconds/throughput) · 1 skipped. Frontend lint ✅ · build ✅ (120.10 KB gzip).
+- Browser (thật, data thật trong DB: 6 job/11 step/2 adapter): KPI + thanh status + biểu đồ
+  throughput SVG + bảng adapter hiển thị đúng, màu theo SPEC, không lỗi (đã chụp).
+
 ### UAT — Trang chức năng (3/5): Logs (2026-06-23)
 > **Điểm thiết kế (đã chốt với user):** bảng `events` (SPEC 10 §2 = audit/log) trước đây
 > chỉ dùng cho idempotency key; activity chỉ broadcast WS, **không persist**, và **chưa có

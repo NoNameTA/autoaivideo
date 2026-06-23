@@ -14,6 +14,7 @@ import type {
   Project,
   ProjectCreate,
   ProjectUpdate,
+  Stats,
 } from "../types/api";
 import type { AllowedFolder, FsEntry, ReadResult, ScanResult } from "../types/fs";
 import type { Pipeline, PipelineInput } from "../types/pipeline";
@@ -57,6 +58,8 @@ export const endpoints = {
     const s = params.toString();
     return http.get<LogEntry[]>(`/api/v1/logs${s ? `?${s}` : ""}`);
   },
+
+  getStats: () => http.get<Stats>("/api/v1/stats"),
 
   listAgents: () => http.get<Agent[]>("/api/v1/agents"),
 

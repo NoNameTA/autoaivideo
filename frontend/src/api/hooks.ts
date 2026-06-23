@@ -117,6 +117,10 @@ export function useLogs(q: LogQuery) {
   });
 }
 
+export function useStats() {
+  return useQuery({ queryKey: ["stats"], queryFn: endpoints.getStats });
+}
+
 export function useAgents() {
   return useQuery({ queryKey: qk.agents, queryFn: endpoints.listAgents });
 }

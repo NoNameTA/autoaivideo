@@ -156,3 +156,29 @@ export interface LogQuery {
   search?: string;
   limit?: number;
 }
+
+// Thống kê vận hành cho trang Statistics (SPEC 02 §7).
+export interface ThroughputPoint {
+  date: string;
+  count: number;
+}
+
+export interface AdapterStat {
+  adapter: string;
+  count: number;
+  failed: number;
+  avg_seconds: number;
+}
+
+export interface Stats {
+  jobs_total: number;
+  jobs_by_status: Record<string, number>;
+  steps_total: number;
+  steps_by_status: Record<string, number>;
+  completed_total: number;
+  failed_total: number;
+  fail_rate: number;
+  throughput: ThroughputPoint[];
+  adapters: AdapterStat[];
+  generated_at: string;
+}

@@ -63,6 +63,7 @@ export function useWebSocketConnection(): void {
         queryClient.invalidateQueries({ queryKey: ["job"] });
         queryClient.invalidateQueries({ queryKey: ["batch"] });
         queryClient.invalidateQueries({ queryKey: ["jobs-all"] });
+        queryClient.invalidateQueries({ queryKey: ["stats"] });
       }
       // Mọi activity/fs.event/agent.updated đều được backend ghi vào audit-log
       // (bảng events) -> làm mới trang Logs realtime (SPEC 04 §7).
