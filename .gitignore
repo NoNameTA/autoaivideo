@@ -36,6 +36,10 @@ _test_profile/
 # ===== Runtime data (SPEC 07) =====
 data/
 !data/.gitkeep
+# Thư mục DATA_DIR khác khi chạy thật/UAT (output agent: asset/job/step)
+agent/uat_data/
+uat_data/
+agent/data/
 
 # ===== Logs =====
 logs/
