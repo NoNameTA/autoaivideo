@@ -4,6 +4,25 @@
 
 ## [Unreleased]
 
+### Settings — Khóa Owner Token & API Base URL (2026-06-23)
+> Bổ sung cơ chế **khóa** cho 2 trường nhạy cảm ở trang Settings. **Chỉ chạm file Settings**
+> (`pages/Settings.tsx`, `store/settings.ts`) — KHÔNG đổi API/DB/Agent, KHÔNG ảnh hưởng các trang
+> đã hoàn thành. **Theme giữ nguyên hoàn toàn** (luôn hiển thị & đổi được, kể cả khi đang khóa).
+
+#### Added — Frontend (chỉ Settings)
+- **Trạng thái Locked/Unlocked** cho Owner Token + API Base URL: lưu lần đầu → tự khóa; ô che
+  `••••••••••••••••` read-only (không lộ độ dài/giá trị thật), badge `🔒 Locked` / `🔓 Unlocked`.
+- **Unlock**: nút `🔓 Unlock Settings` → hộp thoại "Nhập mã khóa để mở khóa". Đúng → hiện lại giá
+  trị thật, cho sửa, **Lưu xong tự khóa lại**. Sai → "Mã khóa không đúng.", không mở khóa, không lộ dữ liệu.
+- **Bảo mật**: xác thực bằng **SHA-256 hash** (Web Crypto) — KHÔNG hard-code mã gốc, KHÔNG so chuỗi
+  trực tiếp; token không vào DOM khi Locked, không log ra console. Cờ `locked` thêm vào
+  `store/settings.ts` (persist) — token/apiBase vẫn lưu & dùng y như cũ (http client/WS không đổi).
+
+#### Verified
+- Frontend lint ✅ · build (tsc + vite) ✅ (121.39 KB gzip). Backend KHÔNG đổi → không cần test lại.
+- Browser (thật): lưu lần đầu→khóa, reload vẫn Locked (token thật vẫn trong store), Unlock đúng/sai,
+  sửa→Save→tự khóa lại, token KHÔNG lộ DOM/console, **Theme đổi bình thường khi đang Locked** (đã chụp).
+
 ### UAT — Nghiệm thu End-to-End toàn hệ thống (2026-06-23)
 > 🧪 Chạy **hệ thống THẬT** (Backend uvicorn + Desktop Agent `aivideo-agent.exe` + 5 plugin +
 > Frontend) — **không mock, không bypass**. Báo cáo đầy đủ: [`UAT_REPORT.md`](UAT_REPORT.md).
