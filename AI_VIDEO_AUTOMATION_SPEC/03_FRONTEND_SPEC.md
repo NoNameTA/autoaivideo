@@ -30,6 +30,7 @@ frontend/src/
 | Route | Màn hình | Mô tả |
 |-------|----------|------|
 | `/` | Dashboard | Tổng quan: job đang chạy, throughput, cảnh báo |
+| `/video-sources` | Video Sources | Nguồn video đầu vào: Direct URL (V1) + Google Sheets (V2); import/preview/Run Workflow |
 | `/projects` | Danh sách Project | CRUD project |
 | `/projects/:id` | Chi tiết Project | Cấu hình pipeline mặc định, batch |
 | `/projects/:id/batches/new` | Tạo Batch | Nạp input CSV/biểu mẫu, preview job sinh ra |
@@ -49,6 +50,11 @@ frontend/src/
 - `StepTimeline` — timeline ngang các step + thời lượng + log inline.
 - `AssetPreview` — xem trước ảnh/audio/video (player), tải xuống.
 - `InputImporter` — upload CSV, map cột → biến pipeline, validate, preview.
+- **Video Sources** (trang `/video-sources`) — quản lý **nguồn video đầu vào** (entity `video_sources`,
+  SPEC 10). V1 **Direct URL**: nhập/dán nhiều link, Add/Remove, Import txt/CSV, Preview (STT/title/link/
+  status, chọn/lọc/tìm/refresh), **Run Workflow** → tạo Job download mỗi link (qua Batch hiện có; Agent
+  tải bằng `media.download`/yt-dlp). V2 **Google Sheets** (đọc link, Preview qua Backend→Adapter). Thiết
+  kế `source_type` mở rộng (CSV/Folder/Drive/Dropbox/OneDrive…) **không** sửa Workflow/Queue.
 - `AgentCard` — trạng thái agent + capability badge.
 - `PluginConfigForm` — form sinh động từ JSON Schema của plugin (`08`).
 - `PipelineEditor` — **trang Workflow**: tạo/sửa/xoá pipeline (thêm/xoá/sắp xếp step, chọn adapter, config JSON), chạy pipeline (tạo batch), xem DAG các step. Pipeline lưu DB (CRUD `/api/v1/pipelines`), seed built-in từ JSON. *(Kéo-thả trực quan để V2.1+.)*

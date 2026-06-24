@@ -1,0 +1,24 @@
+name: google_sheets
+version: 1.0.0
+type: cloud-api
+free: true
+commercial: false
+license: Apache-2.0
+source_url: https://developers.google.com/sheets
+tos_url: https://developers.google.com/terms
+automation_allowed: true
+base_url: https://sheets.googleapis.com/v4
+auth:
+  kind: service_account
+  scopes:
+    - https://www.googleapis.com/auth/spreadsheets
+requires_credential: true
+entrypoint: adapter:GoogleSheetsAdapter
+capabilities:
+  - cloud.google_sheets.read
+  - cloud.google_sheets.write
+  - cloud.google_sheets.append
+  - cloud.google_sheets.update_cell
+  - cloud.google_sheets.update_row
+config_schema: config.schema.json
+requires_sdk: "1.0.0"

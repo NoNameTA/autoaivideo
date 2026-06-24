@@ -10,7 +10,7 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TypedDict
@@ -60,11 +60,37 @@ class StepContext:
     data_dir: str
     timeout: int
     trace_id: str | None = None
+    # Capability đang chạy (cloud-api: 1 adapter phục vụ nhiều capability, SPEC 06 §9.6).
+    capability: str = ""
     on_progress: Callable[[int, str], None] | None = field(default=None, repr=False)
+    # Resolver credential JIT (SPEC 11 §3.3): nhận payload -> trả material (token ngắn hạn).
+    credential_resolver: Callable[[dict], Awaitable[dict]] | None = field(
+        default=None, repr=False
+    )
 
     def progress(self, pct: int, msg: str = "") -> None:
         if self.on_progress:
             self.on_progress(pct, msg)
+
+    async def get_credential(self, operation: str = "", scopes: list[str] | None = None) -> dict:
+        """Xin token ngắn hạn từ Backend (JIT). Material chỉ ở RAM, KHÔNG cache/log/ghi file."""
+        if self.credential_resolver is None:
+            raise PermanentError("Không có kênh credential (step không chạy qua agent online?)")
+        ref = self.config.get("credential_ref")
+        conn = self.config.get("connection_id")
+        if not ref and not conn:
+            raise PermanentError("Step thiếu credential_ref/connection_id")
+        payload = {
+            "step_id": self.step_id,
+            "credential_ref": ref,
+            "connection_id": conn,
+            "operation": operation or self.capability,
+            "scopes": scopes,
+        }
+        material = await self.credential_resolver(payload)
+        if not material or not material.get("token"):
+            raise PermanentError("Backend không cấp được credential")
+        return material
 
     @property
     def logger(self) -> logging.Logger:
@@ -72,9 +98,14 @@ class StepContext:
 
 
 class Adapter(ABC):
-    """Lớp cơ sở cho mọi adapter. `capability` phải khớp manifest."""
+    """Lớp cơ sở cho mọi adapter. `capability` phải khớp manifest.
+
+    Adapter cloud-api có thể phục vụ NHIỀU capability: khai `capabilities` (list) và đọc
+    `ctx.capability` trong run() để biết operation (SPEC 06 §9.6).
+    """
 
     capability: str = ""
+    capabilities: list[str] = []
     requires_sdk: str = "1.0.0"
 
     def validate_config(self, config: dict) -> None:  # noqa: B027 - hook tuỳ chọn

@@ -4,6 +4,49 @@
 
 ## [Unreleased]
 
+### Cloud Adapter Framework + Google Sheets Adapter — Ready for Integration Test (2026-06-24)
+> ⚠️ **CHƯA integration-test với Google thật** (chờ credential — Pha 2). Commit chung vì migration
+> `video_sources` phụ thuộc migration `credentials/connections`. Code **buildable + unit-test pass**;
+> plugin **dormant** khi chưa cấu hình Credential/Connection. SPEC đã duyệt (06/08/09/10/11/14, AP1–AP4).
+
+- **Backend:** Secret Provider (db_store Fernet + local_file, auto-select MASTER_KEY) · Credential Store
+  + Connection Manager (models/migration `c7f1a9d3e520`/services/REST, **API không lộ secret**) ·
+  mint Google SA token (JWT RS256) · **RPC `credential.request/response`** JIT (SPEC 09 §4.3).
+- **Agent:** driver `cloud` + credential RPC client (xoá token sau op) · plugin loader đa-capability.
+- **Plugin:** `plugins/google_sheets/` (gspread, 5 op) · **Frontend:** Cloud Connections UI.
+- Unit test thật: `test_credentials` (Fernet round-trip, local_file IO, không lộ secret). Hướng dẫn:
+  `SETUP_GOOGLE_SHEETS.md`. **Live read/write Google Sheets sẽ test ở Pha 2.**
+
+### Video Sources — Pha 1: Direct URL (2026-06-24)
+> Lớp **nguồn video đầu vào** (SPEC 02 §4.1, 03, 10). **Không đổi kiến trúc**: tái dùng nguyên
+> Project→Batch→Job/Queue/Workflow/Logs/Statistics. **Website chỉ tạo Job, Backend điều phối,
+> Desktop Agent tải bằng plugin yt-dlp** (`media.download`). `source_type` mở rộng (google_sheets/
+> csv/folder/drive…) mà không sửa Workflow/Queue. Pha 2 (Google Sheets) chờ credential.
+
+#### Added — SPEC
+- 02 §4.1 (Video Sources = input layer, source_type mở rộng), 03 §3+§5 (route `/video-sources` +
+  page), 10 (bảng `video_sources` + `video_source_items`).
+
+#### Added — Backend
+- Models `video_source` + `video_source_item` + migration `d8a2b4c6e731`; schemas; `VideoSourceService`
+  (CRUD, **import** đa link từ urls/text/txt/CSV + tách URL + dedup, **run** → tạo Batch qua
+  `BatchService` mỗi item=1 Job, link job↔item, **status item suy từ job** khi đọc — không đụng engine).
+- REST `/api/v1/video-sources` (CRUD + `/links` + `/items` + `/run`). Pipeline built-in `video_download`
+  (step `media.download`). StatsService thêm metric `video` (sources/items theo status/tổng dung lượng).
+
+#### Added — Frontend
+- **Menu + trang Video Sources** (`pages/VideoSources.tsx`): tạo nguồn, nhập/dán nhiều link, **Add Link/
+  Import txt-CSV**, **Preview** (STT/tên/link/status/job, chọn-tất-cả/lọc/tìm/refresh/xoá), **Run Workflow**
+  → tạo Job download. Statistics thêm panel **Video Sources**. Realtime: WS invalidate `["video-items"]`.
+  Không đổi Theme/Dashboard/Settings.
+
+#### Verified (thật, không mock)
+- Backend ruff ✅ · pytest ✅ **52 passed** (+4 `test_video_sources`: import/dedup/CSV, run tạo 1 job/link,
+  status suy từ job) · 1 skipped. Frontend lint ✅ · build ✅ (124.85 KB gzip).
+- **Browser + download THẬT** ✅: agent (source) tải `Big_Buck_Bunny_360_10s_1MB.mp4` **967.8 KB** qua
+  yt-dlp → job completed → item **done** + job link; Queue/Logs (`plugin.runtime.* media.download`)/
+  Statistics (video metrics) tự tích hợp. Toàn UI flow (tạo→add→run→done) verify trong trình duyệt.
+
 ### Settings — Khóa Owner Token & API Base URL (2026-06-23)
 > Bổ sung cơ chế **khóa** cho 2 trường nhạy cảm ở trang Settings. **Chỉ chạm file Settings**
 > (`pages/Settings.tsx`, `store/settings.ts`) — KHÔNG đổi API/DB/Agent, KHÔNG ảnh hưởng các trang

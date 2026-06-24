@@ -24,6 +24,13 @@ function fmtSeconds(s: number): string {
   return s < 60 ? `${s.toFixed(1)}s` : `${(s / 60).toFixed(1)}m`;
 }
 
+function fmtBytes(b: number): string {
+  if (b <= 0) return "0 B";
+  const u = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(Math.floor(Math.log(b) / Math.log(1024)), u.length - 1);
+  return `${(b / 1024 ** i).toFixed(1)} ${u[i]}`;
+}
+
 function Kpi({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
     <div className="rounded-lg border border-border bg-surface p-4">
@@ -176,6 +183,25 @@ function Body({ data }: { data: Stats }) {
           accent={data.fail_rate > 0 ? "var(--danger)" : undefined}
         />
         <Kpi label="Tổng step" value={String(data.steps_total)} />
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-sm font-semibold text-text">Video Sources</h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+          <Kpi label="Nguồn" value={String(data.video.sources_total)} />
+          <Kpi label="Tổng video" value={String(data.video.items_total)} />
+          <Kpi
+            label="Tải xong"
+            value={String(data.video.items_by_status.done ?? 0)}
+            accent="var(--success)"
+          />
+          <Kpi
+            label="Lỗi"
+            value={String(data.video.items_by_status.failed ?? 0)}
+            accent={data.video.items_by_status.failed ? "var(--danger)" : undefined}
+          />
+          <Kpi label="Tổng dung lượng" value={fmtBytes(data.video.total_asset_bytes)} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

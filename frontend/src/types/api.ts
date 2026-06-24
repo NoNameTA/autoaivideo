@@ -170,6 +170,13 @@ export interface AdapterStat {
   avg_seconds: number;
 }
 
+export interface VideoStats {
+  sources_total: number;
+  items_total: number;
+  items_by_status: Record<string, number>;
+  total_asset_bytes: number;
+}
+
 export interface Stats {
   jobs_total: number;
   jobs_by_status: Record<string, number>;
@@ -180,7 +187,37 @@ export interface Stats {
   fail_rate: number;
   throughput: ThroughputPoint[];
   adapters: AdapterStat[];
+  video: VideoStats;
   generated_at: string;
+}
+
+// Video Sources (SPEC 02 §4.1, 10). source_type mở rộng (direct_url V1, google_sheets V2…).
+export interface VideoSource {
+  id: string;
+  name: string;
+  source_type: string;
+  config: Record<string, unknown>;
+  status: string;
+  item_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VideoSourceItem {
+  id: string;
+  source_id: string;
+  seq: number;
+  url: string;
+  title: string | null;
+  status: string;
+  job_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RunResult {
+  batch_id: string;
+  job_count: number;
 }
 
 // External Apps — adapter bọc app ngoài (SPEC 06).
@@ -208,4 +245,55 @@ export interface ExternalAppTestResult {
   ok: boolean;
   reason: string;
   agents: string[];
+}
+
+// Credential Store + Connection Manager (SPEC 11 §3, 06 §10). CredentialOut KHÔNG có secret.
+export interface Credential {
+  id: string;
+  provider: string;
+  connection_name: string;
+  authentication_type: string;
+  metadata: Record<string, unknown>;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  last_used_at: string | null;
+}
+
+export interface CredentialCreate {
+  provider: string;
+  connection_name: string;
+  authentication_type?: string;
+  scopes?: string[];
+  secret_path?: string;
+  secret_inline?: string;
+}
+
+export interface Connection {
+  id: string;
+  provider: string;
+  credential_id: string | null;
+  display_name: string;
+  enabled: boolean;
+  health_status: string;
+  last_check: string | null;
+  capabilities: string[];
+  settings: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  last_used_at: string | null;
+}
+
+export interface ConnectionCreate {
+  provider: string;
+  credential_id?: string | null;
+  display_name: string;
+  capabilities?: string[];
+  settings?: Record<string, unknown>;
+}
+
+export interface ConnectionTestResult {
+  ok: boolean;
+  health_status: string;
+  message: string;
 }

@@ -57,11 +57,16 @@ async def sync_plugins(session: AsyncSession) -> int:
             plugin = Plugin(name=name, enabled=False, config={})
             session.add(plugin)
         # Giữ nguyên enabled + config do người dùng đặt; chỉ cập nhật metadata.
+        # cloud-api có thể khai `capabilities` (list); plugin thường khai `capability` (single).
+        caps = manifest.get("capabilities") or (
+            [manifest["capability"]] if manifest.get("capability") else []
+        )
         plugin.version = str(manifest.get("version", ""))
-        plugin.capability = manifest.get("capability", "")
+        plugin.capability = caps[0] if caps else ""
         plugin.type = manifest.get("type", "")
         plugin.manifest = manifest
-        registry_cache.add_capability(manifest.get("capability", ""))
+        for cap in caps:
+            registry_cache.add_capability(cap)
         count += 1
     await session.commit()
     return count

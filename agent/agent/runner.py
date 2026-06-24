@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+
 from agent.adapter_registry import get_adapters
 from agent.config import AgentSettings
 from agent.fs import step_output_dir
 from agent.sdk import PermanentError, ProcessDriver, StepContext, build_step_inputs_env
 
 
-async def run_step(settings: AgentSettings, data: dict) -> list[dict]:
+async def run_step(
+    settings: AgentSettings,
+    data: dict,
+    credential_resolver: Callable[[dict], Awaitable[dict]] | None = None,
+) -> list[dict]:
     capability = data.get("adapter") or data.get("capability")
     adapter = get_adapters(settings.plugins_dir or None).get(capability)
     if adapter is None:
@@ -27,6 +33,8 @@ async def run_step(settings: AgentSettings, data: dict) -> list[dict]:
         data_dir=settings.data_dir,
         timeout=settings.step_timeout,
         trace_id=data.get("trace_id"),
+        capability=capability,
+        credential_resolver=credential_resolver,
     )
 
     adapter.validate_config(config)

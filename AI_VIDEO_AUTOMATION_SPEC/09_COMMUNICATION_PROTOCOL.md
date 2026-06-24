@@ -93,6 +93,27 @@ Backend phát các bản tin **global** (mọi dashboard nhận) cho Activity St
 - `plugin.runtime.*` gắn với Job/Workflow (step do plugin thực thi); `plugin.lifecycle.*` thuộc quản trị registry.
 - Job/step theo scope batch (§3) vẫn giữ cho BatchView; Activity Stream dùng kênh global riêng.
 
+## 4.3 Credential RPC qua `/ws/agent` (Cloud Adapter — SPEC 06 §9, 11 §3.3)
+
+> **Just-In-Time (JIT):** Agent chỉ xin credential **khi thực sự cần thực hiện một operation**.
+> Backend là nơi DUY NHẤT giữ & giải mã secret; chỉ cấp **lượng tối thiểu** (ưu tiên token ngắn hạn).
+
+Agent → Server:
+| type | data |
+|------|------|
+| `credential.request` | `{ request_id, step_id, credential_ref \| connection_id, operation, scopes? }` |
+
+Server → Agent:
+| type | data |
+|------|------|
+| `credential.response` | `{ request_id, ok, material?:{type, token, header?}, expires_at?, error?:{code,message} }` |
+
+**Quy tắc (bắt buộc):**
+- Backend **xác thực Agent** (`AGENT_TOKEN`) + **đối soát** `step_id` đang được giao cho agent đó trước khi cấp.
+- Backend **giải mã JIT** + cấp **tối thiểu** cho đúng `operation` (ưu tiên access token ngắn hạn, không phải key gốc); kèm `expires_at` ngắn.
+- Agent **không cache lâu dài**, **không** ghi log/file/DB cục bộ; **xoá material khỏi RAM ngay sau khi operation kết thúc** (thành công hoặc lỗi).
+- Mã lỗi: `UNAUTHORIZED`, `FORBIDDEN` (step không thuộc agent), `CREDENTIAL_NOT_FOUND`, `CREDENTIAL_INVALID`, `RATE_LIMITED`.
+
 ## 5. REST quy ước
 
 - Phân trang: `?limit=&cursor=`; trả `{ items:[], next_cursor }`.

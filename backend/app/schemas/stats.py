@@ -17,6 +17,13 @@ class AdapterStat(BaseModel):
     avg_seconds: float
 
 
+class VideoStats(BaseModel):
+    sources_total: int
+    items_total: int
+    items_by_status: dict[str, int]
+    total_asset_bytes: int
+
+
 class StatsOut(BaseModel):
     """Thống kê vận hành (SPEC 02 §7)."""
 
@@ -29,4 +36,5 @@ class StatsOut(BaseModel):
     fail_rate: float
     throughput: list[ThroughputPoint]
     adapters: list[AdapterStat]
+    video: VideoStats
     generated_at: datetime

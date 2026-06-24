@@ -11,15 +11,76 @@ from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from app.api.ws.fs_rpc import fs_rpc
 from app.api.ws.manager import envelope, manager
 from app.core.config import get_settings
-from app.core.errors import UnauthorizedError
+from app.core.errors import AppError, ForbiddenError, UnauthorizedError, ValidationAppError
 from app.core.security import verify_agent_token
 from app.db.session import SessionLocal
+from app.models.step import Step
 from app.orchestrator.agent_registry import AgentConn, registry
 from app.orchestrator.engine import engine
 from app.services.agent_service import AgentService
 from app.services.allowed_folder_service import AllowedFolderService
+from app.services.connection_service import ConnectionService
+from app.services.credential_service import CredentialService
 
 router = APIRouter()
+
+
+async def _handle_credential_request(
+    websocket: WebSocket, agent_id: str | None, data: dict
+) -> None:
+    """Cấp credential JIT cho Agent (SPEC 09 §4.3, 11 §3.3). Chỉ token ngắn hạn tối thiểu."""
+    req_id = data.get("request_id")
+    try:
+        async with SessionLocal() as session:
+            step_id = data.get("step_id")
+            step = await session.get(Step, step_id) if step_id else None
+            # Đối soát: step phải đang được giao cho chính agent này.
+            if agent_id is None or step is None or step.assigned_agent != agent_id:
+                raise ForbiddenError("Step không thuộc agent này")
+            cred_ref = data.get("credential_ref")
+            conn_id = data.get("connection_id")
+            if conn_id and not cred_ref:
+                conn = await ConnectionService.get(session, conn_id)
+                cred_ref = conn.credential_id
+            if not cred_ref:
+                raise ValidationAppError("Thiếu credential_ref/connection_id")
+            cred = await CredentialService.get(session, cred_ref)
+            token, expires_at = await CredentialService.mint_token(
+                session, cred, data.get("scopes") or None
+            )
+        await websocket.send_json(
+            envelope(
+                "credential.response",
+                {
+                    "request_id": req_id,
+                    "ok": True,
+                    "material": {"type": "bearer", "token": token, "header": "Authorization"},
+                    "expires_at": expires_at,
+                },
+            )
+        )
+    except AppError as e:
+        await websocket.send_json(
+            envelope(
+                "credential.response",
+                {
+                    "request_id": req_id,
+                    "ok": False,
+                    "error": {"code": e.code, "message": e.message},
+                },
+            )
+        )
+    except Exception as e:  # noqa: BLE001 - không lộ chi tiết bí mật
+        await websocket.send_json(
+            envelope(
+                "credential.response",
+                {
+                    "request_id": req_id,
+                    "ok": False,
+                    "error": {"code": "INTERNAL", "message": type(e).__name__},
+                },
+            )
+        )
 
 
 @router.websocket("/ws/agent")
@@ -76,6 +137,8 @@ async def ws_agent(websocket: WebSocket, token: str | None = Query(default=None)
                     data.get("error", "unknown"),
                     bool(data.get("retryable", False)),
                 )
+            elif mtype == "credential.request":
+                await _handle_credential_request(websocket, agent_id, data)
             elif mtype == "fs.response":
                 fs_rpc.resolve(
                     data.get("request_id"),

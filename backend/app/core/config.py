@@ -21,6 +21,12 @@ class Settings(BaseSettings):
     auth_token: str = "change-me-owner-token"
     agent_token: str = "change-me-agent-token"
 
+    # Secret Provider (SPEC 11 §3.5). Có MASTER_KEY (Fernet urlsafe-base64 32 byte) -> db_store
+    # mã hoá; trống (dev) -> local_file. KHÔNG hard-code khoá; đặt qua env.
+    master_key: str = ""
+    # Thư mục chứa file bí mật cục bộ (local_file provider) — gitignored.
+    secrets_dir: str = "./.secrets"
+
     max_concurrent_steps: int = 4
     ack_timeout: int = 30
     heartbeat_timeout: int = 120

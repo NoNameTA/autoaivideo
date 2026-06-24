@@ -13,6 +13,8 @@ from app import __version__
 from app.api.rest import (
     agents,
     batches,
+    connections,
+    credentials,
     external_apps,
     fs,
     health,
@@ -22,6 +24,7 @@ from app.api.rest import (
     plugins,
     projects,
     stats,
+    video_sources,
 )
 from app.api.ws import agent as ws_agent
 from app.api.ws import dashboard as ws_dashboard
@@ -78,6 +81,9 @@ def create_app() -> FastAPI:
     app.include_router(logs.router)
     app.include_router(stats.router)
     app.include_router(external_apps.router)
+    app.include_router(credentials.router)
+    app.include_router(connections.router)
+    app.include_router(video_sources.router)
     app.include_router(fs.router)
     app.include_router(ws_dashboard.router)
     app.include_router(ws_agent.router)

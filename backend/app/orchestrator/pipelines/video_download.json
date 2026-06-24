@@ -1,0 +1,13 @@
+{
+  "name": "video_download",
+  "description": "Tải video từ URL bằng plugin media.download (yt-dlp) — Agent thực hiện (SPEC 02 §4.1).",
+  "steps": [
+    {
+      "step_key": "download",
+      "adapter": "media.download",
+      "config": {
+        "output_template": "%(title).80s.%(ext)s"
+      }
+    }
+  ]
+}

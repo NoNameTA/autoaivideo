@@ -121,12 +121,120 @@ export function useStats() {
   return useQuery({ queryKey: ["stats"], queryFn: endpoints.getStats });
 }
 
+export function useVideoSources() {
+  return useQuery({ queryKey: ["video-sources"], queryFn: endpoints.listVideoSources });
+}
+
+export function useVideoItems(id: string | undefined) {
+  return useQuery({
+    queryKey: ["video-items", id],
+    queryFn: () => endpoints.listVideoItems(id as string),
+    enabled: !!id,
+  });
+}
+
+export function useCreateVideoSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.createVideoSource,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["video-sources"] }),
+  });
+}
+
+export function useDeleteVideoSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => endpoints.deleteVideoSource(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["video-sources"] }),
+  });
+}
+
+export function useAddVideoLinks(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { urls?: string[]; text?: string }) => endpoints.addVideoLinks(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["video-sources"] });
+      qc.invalidateQueries({ queryKey: ["video-items", id] });
+    },
+  });
+}
+
+export function useDeleteVideoItem(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (itemId: string) => endpoints.deleteVideoItem(id, itemId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["video-items", id] }),
+  });
+}
+
+export function useRunVideoSource(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { item_ids?: string[]; project_id?: string; pipeline?: string }) =>
+      endpoints.runVideoSource(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["video-items", id] });
+      qc.invalidateQueries({ queryKey: ["video-sources"] });
+      qc.invalidateQueries({ queryKey: ["jobs-all"] });
+    },
+  });
+}
+
 export function useExternalApps() {
   return useQuery({ queryKey: ["external-apps"], queryFn: endpoints.listExternalApps });
 }
 
 export function useTestExternalApp() {
   return useMutation({ mutationFn: (name: string) => endpoints.testExternalApp(name) });
+}
+
+export function useCredentials() {
+  return useQuery({ queryKey: ["credentials"], queryFn: endpoints.listCredentials });
+}
+
+export function useCreateCredential() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.createCredential,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["credentials"] }),
+  });
+}
+
+export function useDeleteCredential() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => endpoints.deleteCredential(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["credentials"] }),
+  });
+}
+
+export function useConnections() {
+  return useQuery({ queryKey: ["connections"], queryFn: endpoints.listConnections });
+}
+
+export function useCreateConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.createConnection,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["connections"] }),
+  });
+}
+
+export function useDeleteConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => endpoints.deleteConnection(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["connections"] }),
+  });
+}
+
+export function useTestConnection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => endpoints.testConnection(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["connections"] }),
+  });
 }
 
 export function useAgents() {

@@ -3,6 +3,11 @@ import type {
   Agent,
   Batch,
   BatchCreate,
+  Connection,
+  ConnectionCreate,
+  ConnectionTestResult,
+  Credential,
+  CredentialCreate,
   ExternalApp,
   ExternalAppTestResult,
   Info,
@@ -16,7 +21,10 @@ import type {
   Project,
   ProjectCreate,
   ProjectUpdate,
+  RunResult,
   Stats,
+  VideoSource,
+  VideoSourceItem,
 } from "../types/api";
 import type { AllowedFolder, FsEntry, ReadResult, ScanResult } from "../types/fs";
 import type { Pipeline, PipelineInput } from "../types/pipeline";
@@ -63,9 +71,36 @@ export const endpoints = {
 
   getStats: () => http.get<Stats>("/api/v1/stats"),
 
+  // Video Sources (SPEC 02 §4.1)
+  listVideoSources: () => http.get<VideoSource[]>("/api/v1/video-sources"),
+  createVideoSource: (data: { name: string; source_type?: string; config?: Record<string, unknown> }) =>
+    http.post<VideoSource>("/api/v1/video-sources", data),
+  deleteVideoSource: (id: string) => http.del(`/api/v1/video-sources/${id}`),
+  listVideoItems: (id: string) => http.get<VideoSourceItem[]>(`/api/v1/video-sources/${id}/items`),
+  addVideoLinks: (id: string, data: { urls?: string[]; text?: string }) =>
+    http.post<VideoSource>(`/api/v1/video-sources/${id}/links`, data),
+  deleteVideoItem: (id: string, itemId: string) =>
+    http.del(`/api/v1/video-sources/${id}/items/${itemId}`),
+  runVideoSource: (id: string, data: { item_ids?: string[]; project_id?: string; pipeline?: string }) =>
+    http.post<RunResult>(`/api/v1/video-sources/${id}/run`, data),
+
   listExternalApps: () => http.get<ExternalApp[]>("/api/v1/external-apps"),
   testExternalApp: (name: string) =>
     http.post<ExternalAppTestResult>(`/api/v1/external-apps/${name}/test`),
+
+  // Credential Store (SPEC 11 §3) — secret KHÔNG bao giờ trả về.
+  listCredentials: () => http.get<Credential[]>("/api/v1/credentials"),
+  createCredential: (data: CredentialCreate) =>
+    http.post<Credential>("/api/v1/credentials", data),
+  deleteCredential: (id: string) => http.del(`/api/v1/credentials/${id}`),
+
+  // Connection Manager (SPEC 06 §10)
+  listConnections: () => http.get<Connection[]>("/api/v1/connections"),
+  createConnection: (data: ConnectionCreate) =>
+    http.post<Connection>("/api/v1/connections", data),
+  deleteConnection: (id: string) => http.del(`/api/v1/connections/${id}`),
+  testConnection: (id: string) =>
+    http.post<ConnectionTestResult>(`/api/v1/connections/${id}/test`),
 
   listAgents: () => http.get<Agent[]>("/api/v1/agents"),
 

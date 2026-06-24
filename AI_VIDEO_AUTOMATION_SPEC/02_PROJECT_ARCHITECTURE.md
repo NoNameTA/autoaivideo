@@ -94,6 +94,19 @@ steps:
 
 Pipeline lưu trong **bảng `pipelines` (DB)** — CRUD qua `/api/v1/pipelines` (tạo/sửa/xoá/chạy ở trang Workflow). Built-in template (JSON trên đĩa) được **seed vào DB lúc khởi động** (insert-if-missing); `get_steps` ưu tiên DB, fallback JSON. Adapter resolve qua Plugin SDK (`08`).
 
+### 4.1 Video Sources — lớp nguồn dữ liệu đầu vào (SPEC 03, 10)
+
+**Video Source** = nguồn cung cấp danh sách link video để chạy. Tách khỏi Workflow/Queue để **thêm
+nguồn mới không phải sửa pipeline**:
+- `source_type` mở rộng: `direct_url` (V1) · `google_sheets` (V2) · `csv` · `folder` · `google_drive`
+  · `dropbox` · `onedrive`… Mỗi loại chỉ là cách **lấy ra danh sách URL**; phần sau giống nhau.
+- **Run Workflow**: Website chuyển mỗi item (URL) thành **1 input row** → tạo **Batch** (Project→Batch→
+  Job hiện có) với pipeline download → **Agent** tải bằng plugin `media.download` (yt-dlp). **Website chỉ
+  tạo Job, Backend chỉ điều phối, Agent mới tải** (giữ kiến trúc `Website→Backend→Agent→Plugin→External`).
+- Đọc nguồn cloud (Google Sheets…) đi qua **Backend→Adapter** cho Preview (không để Website gọi trực
+  tiếp API ngoài); việc **tải video** luôn ở Agent. Logic đặc thù nằm ở Adapter/Plugin, **không** nhúng
+  vào Website/Backend.
+
 ## 5. Giao tiếp giữa các thành phần
 
 | Cặp | Kênh | Định dạng |

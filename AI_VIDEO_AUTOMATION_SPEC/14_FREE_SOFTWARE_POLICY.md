@@ -26,16 +26,24 @@
 
 Mỗi plugin/External App (`06`,`08`) phải khai:
 ```yaml
-free: true            # CI từ chối nếu false
+free: true            # CI xử lý theo policy (xem §4)
+commercial: false     # true = dịch vụ trả phí (vd OpenAI/Anthropic) — AP2
 license: <SPDX>       # vd MIT, Apache-2.0, GPL-3.0
 source_url: <link>
-tos_url: <link>       # ToS dịch vụ (nếu web)
+tos_url: <link>       # ToS dịch vụ (nếu web/cloud)
 automation_allowed: true   # xác nhận ToS cho phép
 ```
 
-## 4. Kiểm soát tự động (CI gate)
+> Với **Cloud Adapter** (`cloud-api`), `free`/`commercial` lấy theo **Provider Framework metadata**
+> (SPEC 06 §9.8) — khai báo trung lập, **không hard-code** trong CI theo từng provider.
 
-- `audit.yml`/`ci.yml` quét manifest: bất kỳ `free: false` hoặc thiếu `license` → **fail build**.
+## 4. Kiểm soát tự động (CI gate — policy-driven, AP2)
+
+- CI đọc **policy cấu hình** (allowlist license + chế độ với `free:false`/`commercial:true`), **không**
+  hard-code tên provider:
+  - `free: false` / `commercial: true` → theo policy: **cảnh báo** (cho phép owner bật có chủ đích §6)
+    hoặc **chặn** (chế độ free-only nghiêm ngặt). Mặc định: chặn trừ khi override có lý do (§6).
+  - thiếu `license` → **fail build**.
 - Danh sách license cấm (vd license độc quyền không cho phân phối) → fail.
 - Liệt kê dependency: chỉ license trong allowlist (MIT/BSD/Apache/MPL/LGPL/GPL...) qua `pip-licenses`/`license-checker`.
 

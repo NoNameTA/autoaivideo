@@ -13,6 +13,7 @@ agents 1───* steps (assigned_agent)│
 plugins (registry)                 │
 job_queue ───► steps               │
 events (audit/log) ────────────────┘
+credentials 1───* connections      (Cloud Adapter — SPEC 06 §9, 11 §3)
 ```
 
 ## 2. Bảng
@@ -74,6 +75,71 @@ events (audit/log) ────────────────┘
 `level` ∈ `info|warn|error|debug` — suy ra từ loại event lúc ghi (04 §7). Index `level` để lọc
 trang Logs. `data` chứa context denormalize (`batch_id`/`project_id`/`capability`…) cho lọc/tìm kiếm.
 
+### credentials (Credential Store — SPEC 11 §3.1)
+> **Tổng quát, KHÔNG hard-code cho Google.** Dùng chung cho mọi Cloud Adapter
+> (Google Sheets/Drive/Docs/Calendar, Dropbox, OneDrive, Notion, Airtable, OpenAI, Anthropic…).
+
+| cột | kiểu | ghi chú |
+|-----|------|--------|
+| id PK (`cred_…`) | ULID | |
+| provider | text | nhãn nhà cung cấp tự do (vd `google_sheets`, `dropbox`) — **không** ràng buộc lõi |
+| connection_name | text | tên người dùng đặt (vd "Google chính") |
+| authentication_type | text | `service_account` (V2.0) \| `oauth2` \| `api_key` \| `basic` \| `bearer` |
+| encrypted_secret | blob/text | **bí mật mã hoá** (Fernet/AES, khoá `MASTER_KEY`) — **không** plaintext; API **không** trả |
+| metadata | json | mở rộng linh hoạt: `scopes`, `expires_at`, `account_email`, … (không bí mật) |
+| status | text | `active` \| `expired` \| `revoked` |
+| created_at / updated_at / last_used_at | timestamptz | |
+
+### connections (Connection Manager — SPEC 06 §10, 11 §3.4)
+> Quản lý **nhiều kết nối cùng lúc** (Google Sheets A/B, Drive, Dropbox…). Connection **không** chứa
+> bí mật — chỉ trỏ `credential_id` + cấu hình phi-bí-mật.
+
+| cột | kiểu | ghi chú |
+|-----|------|--------|
+| id PK (`conn_…`) | ULID | |
+| provider | text | khớp/độc lập với credential.provider |
+| credential_id | FK credentials nullable | bí mật dùng cho kết nối |
+| display_name | text | tên kết nối (vd "Sheet doanh thu") |
+| enabled | bool | bật/tắt |
+| health_status | text | `connected` \| `error` \| `disabled` \| `unknown` (cập nhật khi Test kết nối) |
+| last_check | timestamptz | lần test kết nối gần nhất |
+| capabilities | json | nhóm capability dùng (vd `["cloud.google_sheets.read", …]` hoặc prefix) |
+| settings | json | **phi-bí-mật** (vd `spreadsheet_id`, `worksheet`, `base_folder`) |
+| created_at / updated_at / last_used_at | timestamptz | |
+
+- Step `cloud-api` tham chiếu bí mật qua `credential_ref` (= `credential_id`) trong `steps.config`,
+  có thể gián tiếp qua `connection_id`. **Không** lưu bí mật trong `steps`/`pipelines`.
+
+### video_sources (Video Sources — lớp nguồn dữ liệu đầu vào)
+> Quản lý **nguồn video đầu vào** (link/Sheet/CSV/Folder…). `source_type` mở rộng để thêm nguồn mới
+> mà **không sửa Workflow/Queue** (SPEC 02). Website chỉ quản lý danh sách + tạo Job; **Agent** mới tải.
+
+| cột | kiểu | ghi chú |
+|-----|------|--------|
+| id PK (`vsrc_…`) | ULID | |
+| name | text | tên nguồn |
+| source_type | text | `direct_url` (V1) \| `google_sheets` \| `csv` \| `folder` \| … (mở rộng) |
+| config | json | cấu hình theo loại (vd Sheets: connection_id/url_column) — **không** bí mật |
+| status | text | `draft` \| `imported` \| `running` \| `done` |
+| item_count | int | số video (cache) |
+| created_at / updated_at | timestamptz | |
+
+### video_source_items (mỗi link video)
+| cột | kiểu | ghi chú |
+|-----|------|--------|
+| id PK (`vitem_…`) | ULID | |
+| source_id FK | → video_sources (cascade) | |
+| seq | int | thứ tự (STT) |
+| url | text | link video |
+| title | text nullable | tên video (nếu có) |
+| status | text | `pending` \| `processing` \| `done` \| `failed` (suy từ job đã link khi đọc) |
+| job_id | FK jobs nullable | job tạo khi Run Workflow |
+| created_at / updated_at | timestamptz | |
+
+- **Run Workflow** → tạo Batch (Project→Batch→Job hiện có) với mỗi item = 1 input row → 1 Job;
+  pipeline download (vd `video_download`, step `media.download`/yt-dlp). **KHÔNG** sửa engine/queue;
+  trạng thái item suy từ `jobs.status` khi đọc.
+
 ## 3. Index chính
 
 - `steps(status, adapter)` — dispatcher.
@@ -81,6 +147,7 @@ trang Logs. `data` chứa context denormalize (`batch_id`/`project_id`/`capabili
 - `jobs(batch_id, status)` — tổng hợp batch.
 - `assets(job_id)`, `assets(checksum)`.
 - `steps(idempotency_key)` unique.
+- `credentials(provider, status)`, `connections(provider, enabled)` — liệt kê theo nhà cung cấp.
 
 ## 4. Toàn vẹn & giao dịch
 

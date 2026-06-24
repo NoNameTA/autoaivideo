@@ -30,6 +30,13 @@ agent/dist/
 !.env.example
 *.secret
 secrets/
+# ...nhưng KHÔNG ignore package mã nguồn `backend/app/secrets/` (Secret Provider, SPEC 11 §3.5).
+!backend/app/secrets/
+# Credential cloud (Service Account JSON…) — SPEC 11 §3.1 / 06 §11. KHÔNG commit.
+# (Chỉ ignore trong .secrets/, KHÔNG ignore *.json toàn cục để giữ package.json,
+#  tsconfig.json, plugins/*/config.schema.json, orchestrator/pipelines/*.json…)
+.secrets/
+.secrets/*.json
 *-profile/
 _test_profile/
 

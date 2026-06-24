@@ -11,12 +11,24 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import utcnow
+from app.models.asset import Asset
 from app.models.enums import JobStatus, StepStatus
 from app.models.job import Job
 from app.models.step import Step
+from app.models.video_source import VideoSource
+from app.models.video_source_item import VideoSourceItem
 
 # Số ngày gần nhất hiển thị throughput (job hoàn tất / ngày).
 THROUGHPUT_DAYS = 14
+
+# job.status -> trang thai video item (dong bo video_source_service).
+_JOB_TO_ITEM = {
+    JobStatus.queued.value: "processing",
+    JobStatus.running.value: "processing",
+    JobStatus.completed.value: "done",
+    JobStatus.failed.value: "failed",
+    JobStatus.cancelled.value: "failed",
+}
 
 
 class StatsService:
@@ -30,6 +42,8 @@ class StatsService:
         finished = completed + failed
         fail_rate = round(failed / finished, 4) if finished else 0.0
 
+        video = await StatsService._video(session)
+
         return {
             "jobs_total": jobs_total,
             "jobs_by_status": jobs_by_status,
@@ -40,7 +54,41 @@ class StatsService:
             "fail_rate": fail_rate,
             "throughput": throughput,
             "adapters": adapters,
+            "video": video,
             "generated_at": utcnow(),
+        }
+
+    @staticmethod
+    async def _video(session: AsyncSession) -> dict:
+        """Metric Video Sources (SPEC 02 §4.1): số nguồn, video theo trạng thái, tổng dung lượng."""
+        sources_total = len(
+            (await session.execute(select(VideoSource.id))).scalars().all()
+        )
+        rows = (
+            await session.execute(
+                select(VideoSourceItem.status, VideoSourceItem.job_id)
+            )
+        ).all()
+        # status item suy từ job đã link.
+        job_ids = [jid for _, jid in rows if jid]
+        jmap: dict[str, str] = {}
+        if job_ids:
+            jrows = (
+                await session.execute(select(Job.id, Job.status).where(Job.id.in_(job_ids)))
+            ).all()
+            jmap = {jid: str(st) for jid, st in jrows}
+        by_status = {"pending": 0, "processing": 0, "done": 0, "failed": 0}
+        for status, jid in rows:
+            resolved = _JOB_TO_ITEM.get(jmap.get(jid or ""), str(status))
+            by_status[resolved] = by_status.get(resolved, 0) + 1
+        total_bytes = (
+            await session.execute(select(Asset.size))
+        ).scalars().all()
+        return {
+            "sources_total": sources_total,
+            "items_total": len(rows),
+            "items_by_status": by_status,
+            "total_asset_bytes": int(sum(b or 0 for b in total_bytes)),
         }
 
     @staticmethod

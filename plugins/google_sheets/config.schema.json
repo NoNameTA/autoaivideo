@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Google Sheets",
+  "description": "Cấu hình thao tác Google Sheets. Bí mật KHÔNG ở đây — qua credential_ref/connection_id.",
+  "type": "object",
+  "properties": {
+    "connection_id": {
+      "type": "string",
+      "title": "Connection ID",
+      "description": "Kết nối (Connection Manager) chứa credential + spreadsheet mặc định."
+    },
+    "credential_ref": {
+      "type": "string",
+      "title": "Credential ID",
+      "description": "Dùng trực tiếp credential thay cho connection_id."
+    },
+    "spreadsheet_id": {
+      "type": "string",
+      "title": "Spreadsheet ID",
+      "description": "ID bảng tính (lấy từ URL). Cấu hình được, KHÔNG hard-code."
+    },
+    "worksheet": {
+      "type": "string",
+      "title": "Worksheet",
+      "description": "Tên worksheet (mặc định sheet đầu)."
+    },
+    "range": {
+      "type": "string",
+      "title": "Range A1",
+      "description": "Vd A1:D10 (read/write)."
+    },
+    "values": {
+      "type": "array",
+      "title": "Values",
+      "description": "Dữ liệu ghi (write: mảng 2 chiều; append/update_row: mảng 1 dòng).",
+      "items": {}
+    },
+    "cell": { "type": "string", "title": "Cell", "description": "Ô A1 cho update_cell (vd B2)." },
+    "value": { "type": "string", "title": "Value", "description": "Giá trị ô cho update_cell." },
+    "row_index": { "type": "integer", "title": "Row index", "description": "Số dòng (1-based) cho update_row." },
+    "value_input_option": {
+      "type": "string",
+      "title": "Value input option",
+      "enum": ["RAW", "USER_ENTERED"],
+      "default": "USER_ENTERED"
+    }
+  }
+}

@@ -24,12 +24,21 @@ plugins/free_image_gen/
 name: free_image_gen
 version: 1.0.0
 capability: image.free_gen
-type: web-cdp                 # web-cdp | desktop-uia | cli-process | local-http
+type: web-cdp                 # web-cdp | desktop-uia | cli-process | local-http | cloud-api
 free: true                    # BẮT BUỘC true (xem 14)
 license: MIT
 source_url: https://...
 entrypoint: adapter:FreeImageGenAdapter
 config_schema: config.schema.json
+```
+
+**Bổ sung cho `type: cloud-api`** (REST/API cloud — xem `06 §9`):
+```yaml
+type: cloud-api
+base_url: https://api.example.com/v1
+auth: { kind: service_account, scopes: [ ... ] }   # V2.0 chỉ service_account; oauth2/api_key… = roadmap
+requires_credential: true     # step/connection phải truyền credential_ref/connection_id (SPEC 11 §3.1)
+capabilities: [ cloud.svc.read, cloud.svc.write, ... ]   # nhiều op = nhiều capability (cloud.<service>.<op>)
 ```
 
 ## 4. Base Adapter (interface)
@@ -62,8 +71,11 @@ class FreeImageGenAdapter(Adapter):
 ### StepContext cung cấp
 - `ctx.inputs: dict` — input đã resolve (file/biến).
 - `ctx.config: dict` — cấu hình plugin (đã validate).
-- `ctx.driver` — driver phù hợp type (`cdp` | `uia` | `process`).
+- `ctx.driver` — driver phù hợp type (`cdp` | `uia` | `process` | `cloud`).
 - `ctx.fs` — API ghi asset đúng chuẩn `07`.
+- `ctx.credentials` — **token ngắn hạn** Backend cấp đúng-lúc-đúng-op (từ `credential_ref`/
+  `connection_id`; chỉ với `cloud-api`/adapter cần auth). Chỉ tồn tại trong RAM khi chạy op, **xoá
+  ngay sau op**, **không** log/file/cache (SPEC 11 §3.3, D1).
 - `ctx.progress(pct, msg)` — báo tiến độ (→ `step.progress`).
 - `ctx.logger`, `ctx.trace_id`.
 
@@ -74,6 +86,7 @@ class FreeImageGenAdapter(Adapter):
 | `cdp` | `goto, click, type, fill, wait_for, eval, download, screenshot` |
 | `uia` | `focus_window, click_control, type_keys, get_text, wait_control` |
 | `process` | `run(cmd, args, timeout) -> {code, stdout, stderr}` |
+| `cloud` | `request(method, path, ...)`, `paginate(...)`, `auth()` (tự refresh token), `rate_limit_guard()` — REST/API cloud, tự gắn xác thực (`06 §9.1`, SPEC 11 §3.2) |
 
 ## 6. Phân loại lỗi (bắt buộc)
 

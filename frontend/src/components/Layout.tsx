@@ -9,6 +9,7 @@ import { useUiStore } from "../store/ui";
 const NAV = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/projects", label: "Projects" },
+  { to: "/video-sources", label: "Video Sources" },
   { to: "/workflow", label: "Workflow" },
   { to: "/queue", label: "Queue" },
   { to: "/files", label: "File Manager" },

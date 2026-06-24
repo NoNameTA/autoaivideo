@@ -11,6 +11,7 @@ import websockets
 
 from agent import __version__
 from agent.adapter_registry import capabilities
+from agent.cloud_rpc import CredentialRpc
 from agent.config import AgentSettings
 from agent.fs_manager import FsNotFound, FsOpError, FsPermissionError, fs_manager
 from agent.runner import run_step
@@ -60,11 +61,15 @@ async def _coalesce_loop(ws, queue: asyncio.Queue, debounce_ms: int) -> None:
             await _send(ws, "fs.event", ev)
 
 
-async def _exec_step(ws, settings: AgentSettings, data: dict) -> None:
+async def _exec_step(ws, settings: AgentSettings, data: dict, cred_rpc: CredentialRpc) -> None:
     step_id = data["step_id"]
     await _send(ws, "step.ack", {"step_id": step_id})
+
+    async def resolver(payload: dict) -> dict:
+        return await cred_rpc.request(lambda t, d: _send(ws, t, d), payload)
+
     try:
-        assets = await run_step(settings, data)
+        assets = await run_step(settings, data, resolver)
         await _send(ws, "step.completed", {"step_id": step_id, "assets": assets})
         log.info("step %s hoàn tất (%d asset)", step_id, len(assets))
     except TransientError as e:
@@ -114,6 +119,7 @@ async def _session(settings: AgentSettings) -> None:
         )
 
         queue: asyncio.Queue = asyncio.Queue()
+        cred_rpc = CredentialRpc()
 
         def sink(ev: dict) -> None:
             # watchdog gọi từ thread khác -> đẩy về event loop.
@@ -128,7 +134,14 @@ async def _session(settings: AgentSettings) -> None:
                 mtype = msg.get("type")
                 data = msg.get("data", {}) or {}
                 if mtype == "step.assign":
-                    asyncio.create_task(_exec_step(ws, settings, data))
+                    asyncio.create_task(_exec_step(ws, settings, data, cred_rpc))
+                elif mtype == "credential.response":
+                    cred_rpc.resolve(
+                        data.get("request_id"),
+                        bool(data.get("ok")),
+                        data.get("material"),
+                        data.get("error"),
+                    )
                 elif mtype == "step.cancel":
                     log.info("Nhận step.cancel %s", data.get("step_id"))
                 elif mtype == "config.update":

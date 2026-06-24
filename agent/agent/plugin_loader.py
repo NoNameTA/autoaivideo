@@ -16,11 +16,20 @@ from agent.sdk import Adapter
 
 log = logging.getLogger("agent")
 
-REQUIRED_FIELDS = ("name", "version", "capability", "type", "free", "entrypoint")
+REQUIRED_FIELDS = ("name", "version", "type", "free", "entrypoint")
 
 
 class PluginError(Exception):
     pass
+
+
+def _manifest_capabilities(manifest: dict) -> list[str]:
+    """`capabilities` (list, cloud-api) hoặc `capability` (single, plugin thường)."""
+    caps = manifest.get("capabilities")
+    if isinstance(caps, list) and caps:
+        return [str(c) for c in caps]
+    single = manifest.get("capability")
+    return [str(single)] if single else []
 
 
 def _load_manifest(plugin_dir: Path) -> dict:
@@ -31,6 +40,8 @@ def _load_manifest(plugin_dir: Path) -> dict:
     missing = [f for f in REQUIRED_FIELDS if f not in manifest]
     if missing:
         raise PluginError(f"{plugin_dir.name}: manifest thiếu trường {missing}")
+    if not _manifest_capabilities(manifest):
+        raise PluginError(f"{plugin_dir.name}: thiếu capability/capabilities")
     if manifest.get("free") is not True:
         raise PluginError(f"{plugin_dir.name}: free != true (SPEC 14 chặn)")
     return manifest
@@ -61,13 +72,19 @@ def load_plugins(plugins_dir: str | Path) -> dict[str, Adapter]:
         try:
             manifest = _load_manifest(plugin_dir)
             adapter = _load_adapter(plugin_dir, manifest["entrypoint"])
-            if adapter.capability != manifest["capability"]:
+            caps = _manifest_capabilities(manifest)
+            # Adapter phải khai đúng các capability nó phục vụ (single qua `capability`,
+            # nhiều qua `capabilities`).
+            declared = set(adapter.capabilities)
+            if adapter.capability:
+                declared.add(adapter.capability)
+            if not set(caps).issubset(declared):
                 raise PluginError(
-                    f"{plugin_dir.name}: capability adapter ({adapter.capability}) "
-                    f"khác manifest ({manifest['capability']})"
+                    f"{plugin_dir.name}: adapter không khai đủ capability {caps} (có {declared})"
                 )
-            adapters[adapter.capability] = adapter
-            log.info("Nạp plugin %s (capability=%s)", manifest["name"], adapter.capability)
+            for cap in caps:
+                adapters[cap] = adapter  # cùng 1 instance phục vụ nhiều capability
+            log.info("Nạp plugin %s (capabilities=%s)", manifest["name"], caps)
         except Exception as e:  # noqa: BLE001 - plugin lỗi không làm sập agent
             log.warning("Bỏ qua plugin %s: %s", plugin_dir.name, e)
     return adapters

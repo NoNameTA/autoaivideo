@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { ApiError } from "../api/client";
 import { useExternalApps, useTestExternalApp } from "../api/hooks";
+import { CloudConnections } from "../components/CloudConnections";
 import { SectionPanel } from "../components/SectionPanel";
 import { useUiStore } from "../store/ui";
 import type { ConnectionStatus, ExternalApp, ExternalAppTestResult } from "../types/api";
@@ -146,6 +147,8 @@ export function ExternalApps() {
           );
         })}
       </div>
+
+      <CloudConnections />
     </SectionPanel>
   );
 }

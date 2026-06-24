@@ -14,6 +14,7 @@ import { Projects } from "./pages/Projects";
 import { Queue } from "./pages/Queue";
 import { Settings } from "./pages/Settings";
 import { Statistics } from "./pages/Statistics";
+import { VideoSources } from "./pages/VideoSources";
 import { Workflow } from "./pages/Workflow";
 
 export const router = createBrowserRouter(
@@ -24,6 +25,7 @@ export const router = createBrowserRouter(
       children: [
         { index: true, element: <Dashboard /> },
         { path: "projects", element: <Projects /> },
+        { path: "video-sources", element: <VideoSources /> },
         { path: "projects/:id", element: <ProjectDetail /> },
         { path: "projects/:id/batches/new", element: <CreateBatch /> },
         { path: "batches/:id", element: <BatchView /> },

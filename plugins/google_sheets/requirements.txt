@@ -1,0 +1,3 @@
+# Dependency riêng của plugin google_sheets (cài cho Agent khi dùng plugin này).
+# gspread kéo theo google-auth (Apache-2.0, free — SPEC 14 / D3).
+gspread==6.1.4
