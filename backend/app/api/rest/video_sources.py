@@ -11,11 +11,14 @@ from app.schemas.video_source import (
     SheetImportResult,
     SheetPreviewRow,
     SheetReadRequest,
+    VariationRequest,
+    VariationResult,
     VideoSourceCreate,
     VideoSourceItemOut,
     VideoSourceOut,
     VideoSourceUpdate,
 )
+from app.services.variation_service import VariationService
 from app.services.video_source_service import VideoSourceService
 
 router = APIRouter(
@@ -109,3 +112,14 @@ async def import_sheet(
 async def run_source(source_id: str, req: RunRequest, session: SessionDep) -> RunResult:
     batch_id, job_count = await VideoSourceService.run(session, source_id, req)
     return RunResult(batch_id=batch_id, job_count=job_count)
+
+
+@router.post("/{source_id}/items/{item_id}/variations", response_model=VariationResult)
+async def create_variations(
+    source_id: str, item_id: str, req: VariationRequest, session: SessionDep
+) -> VariationResult:
+    """Tạo N biến thể video (ffmpeg) từ 1 video đã tải của item."""
+    batch_id, count = await VariationService.create_variations(
+        session, source_id, item_id, req.count, req.model_dump()
+    )
+    return VariationResult(batch_id=batch_id, count=count)

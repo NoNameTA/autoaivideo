@@ -6,6 +6,7 @@ import {
   useAddVideoLinks,
   useConnections,
   useCountVideoSheet,
+  useCreateVariations,
   useCreateVideoSource,
   useDeleteVideoItem,
   useDeleteVideoSource,
@@ -272,6 +273,7 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
   const addLinks = useAddVideoLinks(sourceId);
   const delItem = useDeleteVideoItem(sourceId);
   const run = useRunVideoSource(sourceId);
+  const variations = useCreateVariations(sourceId);
   const push = useUiStore((s) => s.pushToast);
   const onErr = (e: unknown) => push("error", (e as ApiError).message);
 
@@ -279,6 +281,11 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Tạo biến thể (1 video -> N) — tuỳ chọn.
+  const [varCount, setVarCount] = useState(3);
+  const [varSpin, setVarSpin] = useState(true);
+  const [varRatio, setVarRatio] = useState(true);
+  const [varCaption, setVarCaption] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const rows = useMemo(() => {
@@ -339,6 +346,31 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
     );
   };
 
+  const runVariations = () => {
+    const targets = (items.data ?? []).filter(
+      (it) => selected.has(it.id) && it.status === "done",
+    );
+    if (targets.length === 0) {
+      push("error", "Chọn video ĐÃ TẢI XONG (done) để tạo biến thể");
+      return;
+    }
+    targets.forEach((it) =>
+      variations.mutate(
+        {
+          itemId: it.id,
+          count: varCount,
+          spin: varSpin,
+          ratio: varRatio,
+          caption: varCaption,
+        },
+        {
+          onSuccess: (r) => push("success", `🎬 Đã tạo ${r.count} biến thể cho "${it.title || "video"}"`),
+          onError: onErr,
+        },
+      ),
+    );
+  };
+
   return (
     <div className="mt-6 rounded-lg border border-border bg-bg p-4">
       {/* Nhập nguồn theo loại */}
@@ -396,6 +428,33 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
           className="ml-auto rounded bg-success px-4 py-1 text-sm text-white hover:opacity-90 disabled:opacity-50"
         >
           ▶ Run Workflow{selected.size > 0 ? ` (${selected.size})` : " (tất cả)"}
+        </button>
+      </div>
+
+      {/* Tạo biến thể (1 video đã tải -> N bản chỉnh sửa bằng ffmpeg) */}
+      <div className="mb-3 flex flex-wrap items-center gap-2 rounded border border-border bg-bg p-2 text-sm">
+        <span className="font-medium text-text">🎬 Biến thể</span>
+        <label className="flex items-center gap-1 text-muted">
+          Số bản
+          <input type="number" min={1} max={50} value={varCount}
+            onChange={(e) => setVarCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+            className="w-16 rounded border border-border bg-bg px-2 py-1 text-text" />
+        </label>
+        <label className="flex items-center gap-1 text-muted" title="Đổi tốc độ/lật/zoom/màu để tránh trùng lặp">
+          <input type="checkbox" checked={varSpin} onChange={(e) => setVarSpin(e.target.checked)} />
+          Spin
+        </label>
+        <label className="flex items-center gap-1 text-muted" title="Tạo bản 9:16, 1:1, 16:9">
+          <input type="checkbox" checked={varRatio} onChange={(e) => setVarRatio(e.target.checked)} />
+          Đổi tỉ lệ
+        </label>
+        <label className="flex items-center gap-1 text-muted" title="Chèn tên video làm caption">
+          <input type="checkbox" checked={varCaption} onChange={(e) => setVarCaption(e.target.checked)} />
+          Caption
+        </label>
+        <button onClick={runVariations} disabled={variations.isPending}
+          className="ml-auto rounded bg-primary px-3 py-1 text-white hover:bg-primary-hover disabled:opacity-50">
+          🎬 Tạo biến thể (video done đã chọn)
         </button>
       </div>
 

@@ -1,0 +1,11 @@
+{
+  "name": "ffmpeg_variant",
+  "description": "Tạo 1 biến thể video từ 1 video nguồn bằng ffmpeg (args + source ở job inputs).",
+  "steps": [
+    {
+      "step_key": "variant",
+      "adapter": "video.ffmpeg",
+      "config": {}
+    }
+  ]
+}

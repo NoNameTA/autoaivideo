@@ -98,3 +98,21 @@ class SheetImportResult(BaseModel):
     imported: int
     duplicates: int
     matched: int
+
+
+class VariationRequest(BaseModel):
+    """Tạo N biến thể từ 1 video đã tải. spin/ratio tự động; caption/watermark/music tuỳ chọn."""
+
+    count: int = 3
+    spin: bool = True
+    ratio: bool = False  # bật = dùng cả 3 tỉ lệ nếu không chỉ định ratios
+    ratios: list[str] = []  # ví dụ ["9:16","1:1","16:9"]
+    caption: bool = False  # bật = dùng title làm caption
+    caption_text: str | None = None
+    watermark_path: str | None = None  # đường dẫn ảnh logo (tuỳ chọn)
+    music_path: str | None = None  # đường dẫn nhạc nền (tuỳ chọn)
+
+
+class VariationResult(BaseModel):
+    batch_id: str
+    count: int

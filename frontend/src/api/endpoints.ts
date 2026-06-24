@@ -97,6 +97,22 @@ export const endpoints = {
     http.del(`/api/v1/video-sources/${id}/items/${itemId}`),
   runVideoSource: (id: string, data: { item_ids?: string[]; project_id?: string; pipeline?: string }) =>
     http.post<RunResult>(`/api/v1/video-sources/${id}/run`, data),
+  createVariations: (
+    id: string,
+    itemId: string,
+    data: {
+      count: number;
+      spin?: boolean;
+      ratio?: boolean;
+      ratios?: string[];
+      caption?: boolean;
+      caption_text?: string;
+    },
+  ) =>
+    http.post<{ batch_id: string; count: number }>(
+      `/api/v1/video-sources/${id}/items/${itemId}/variations`,
+      data,
+    ),
 
   listExternalApps: () => http.get<ExternalApp[]>("/api/v1/external-apps"),
   testExternalApp: (name: string) =>

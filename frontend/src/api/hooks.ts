@@ -220,6 +220,25 @@ export function useDeleteVideoItem(id: string) {
   });
 }
 
+export function useCreateVariations(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: {
+      itemId: string;
+      count: number;
+      spin?: boolean;
+      ratio?: boolean;
+      ratios?: string[];
+      caption?: boolean;
+      caption_text?: string;
+    }) => {
+      const { itemId, ...body } = vars;
+      return endpoints.createVariations(id, itemId, body);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs-all"] }),
+  });
+}
+
 export function useRunVideoSource(id: string) {
   const qc = useQueryClient();
   return useMutation({

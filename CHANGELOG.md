@@ -4,6 +4,28 @@
 
 ## [Unreleased]
 
+### Video Variations — 1 video → N bản chỉnh sửa bằng ffmpeg THẬT (2026-06-24)
+> Từ 1 video đã tải, tạo N biến thể tự động bằng ffmpeg (spin tránh trùng + đổi tỉ lệ + caption/
+> watermark/music tuỳ chọn). Additive: tái dùng engine/queue (mỗi biến thể = 1 job pipeline mới).
+
+#### Added
+- **Plugin ffmpeg nâng cấp** (`plugins/ffmpeg/adapter.py`): nhận `args` từ inputs|config; token
+  `{input}` (resolve `source` tương đối data_dir của Agent) + `{output}`. Tương thích ngược.
+- **Pipeline `ffmpeg_variant`** (1 step video.ffmpeg, args ở job inputs).
+- **`VariationService`** (`services/variation_service.py`): `build_recipes` sinh N công thức ffmpeg
+  khác nhau — spin (đổi tốc độ setpts/atempo, hflip, crop-zoom, eq màu) + đổi tỉ lệ (9:16/1:1/16:9)
+  + caption (drawtext, tuỳ chọn) + watermark/music (tuỳ chọn, cần file). `create_variations` lấy
+  asset video của 1 item done → tạo batch N job. Log `Video.Variations`.
+- **REST** `POST /video-sources/{id}/items/{item_id}/variations` (count + options).
+- **FE**: hàng "🎬 Biến thể" (Số bản + Spin + Đổi tỉ lệ + Caption + nút Tạo) trong panel nguồn,
+  áp cho video **done** đã chọn.
+
+#### Verified (LIVE, ffmpeg thật)
+- Tải Big Buck Bunny → tạo 3 biến thể: **variant_1 1080×1920 (9:16)**, **variant_2 1080×1080 (1:1
+  + spin)**, **variant_3 1920×1080 (16:9 + spin)** — 3 file khác kích thước/tỉ lệ thật (ffprobe).
+- UI: chọn video done → "🎬 Tạo biến thể" → toast "Đã tạo N biến thể", job ffmpeg completed. Backend
+  ruff ✅ pytest 60/1skip; FE lint+build ✅; không lỗi console.
+
 ### Tích hợp "mở ra là dùng" — Auto-Sync, tự tạo Connection, web phục vụ từ backend (2026-06-24)
 > Giảm tối đa thao tác cài đặt: web tự phát hiện sản phẩm mới, tự tạo Connection, 1 địa chỉ duy nhất.
 > 100% additive. Trả lời: video đã tải KHÔNG bị tải lại (dedup); sản phẩm mới được TỰ phát hiện.
