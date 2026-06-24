@@ -314,6 +314,7 @@ class OrchestratorEngine:
                 await queue.enqueue(session, nxt.id)
 
         job.progress = int(len(completed) / total * 100) if total else 100
+        became_terminal = job.status in _TERMINAL_JOB
         await session.commit()
         await self._update_batch(session, job.batch_id)
         await manager.broadcast(
@@ -329,6 +330,11 @@ class OrchestratorEngine:
             status=job.status,
             progress=job.progress,
         )
+        # Google Sheets write-back (additive, session riêng, KHÔNG làm hỏng engine nếu lỗi).
+        if became_terminal:
+            from app.services.sheet_writeback import on_job_terminal
+
+            await on_job_terminal(job.id)
 
     async def _has_open_queue(self, session: AsyncSession, step_id: str) -> bool:
         row = (

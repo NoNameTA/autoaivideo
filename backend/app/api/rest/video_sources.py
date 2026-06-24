@@ -7,7 +7,10 @@ from app.schemas.video_source import (
     AddLinks,
     RunRequest,
     RunResult,
+    SheetCountResult,
+    SheetImportResult,
     SheetPreviewRow,
+    SheetReadRequest,
     VideoSourceCreate,
     VideoSourceItemOut,
     VideoSourceOut,
@@ -67,14 +70,33 @@ async def delete_item(source_id: str, item_id: str, session: SessionDep):
 
 
 @router.post("/{source_id}/read-sheet", response_model=list[SheetPreviewRow])
-async def read_sheet(source_id: str, session: SessionDep) -> list[SheetPreviewRow]:
+async def read_sheet(
+    source_id: str, session: SessionDep, req: SheetReadRequest | None = None
+) -> list[SheetPreviewRow]:
     """Google Sheets mode — Backend đọc Sheet trả PREVIEW (Agent KHÔNG tham gia)."""
-    return await VideoSourceService.preview_sheet(session, source_id)  # type: ignore[return-value]
+    r = req or SheetReadRequest()
+    return await VideoSourceService.preview_sheet(  # type: ignore[return-value]
+        session, source_id, r.filter, r.limit
+    )
 
 
-@router.post("/{source_id}/import-sheet", response_model=VideoSourceOut)
-async def import_sheet(source_id: str, session: SessionDep) -> VideoSourceOut:
-    return await VideoSourceService.import_from_sheet(session, source_id)  # type: ignore[return-value]
+@router.post("/{source_id}/count-sheet", response_model=SheetCountResult)
+async def count_sheet(
+    source_id: str, session: SessionDep, req: SheetReadRequest | None = None
+) -> SheetCountResult:
+    """Đếm TRƯỚC khi import (tổng dòng / khớp filter / mới / trùng)."""
+    r = req or SheetReadRequest()
+    return await VideoSourceService.count_sheet(session, source_id, r.filter)  # type: ignore[return-value]
+
+
+@router.post("/{source_id}/import-sheet", response_model=SheetImportResult)
+async def import_sheet(
+    source_id: str, session: SessionDep, req: SheetReadRequest | None = None
+) -> SheetImportResult:
+    r = req or SheetReadRequest()
+    return await VideoSourceService.import_from_sheet(  # type: ignore[return-value]
+        session, source_id, r.filter, r.limit
+    )
 
 
 @router.post("/{source_id}/run", response_model=RunResult)

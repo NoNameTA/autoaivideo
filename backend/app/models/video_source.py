@@ -25,6 +25,8 @@ class VideoSource(Base):
     config: Mapped[dict] = mapped_column(JSON, default=dict)
     status: Mapped[str] = mapped_column(String(20), default="draft")
     item_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Tổng số item bị bỏ qua do trùng (dedup) — phục vụ thống kê Duplicate.
+    duplicate_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

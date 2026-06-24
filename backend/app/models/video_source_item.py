@@ -26,6 +26,11 @@ class VideoSourceItem(Base):
     url: Mapped[str] = mapped_column(Text)
     title: Mapped[str | None] = mapped_column(String(300), default=None)
     status: Mapped[str] = mapped_column(String(20), default="pending")
+    # Số dòng THẬT trong worksheet (1-based) — map write-back đúng dòng (None với Direct URL).
+    sheet_row: Mapped[int | None] = mapped_column(Integer, default=None)
+    # Khoá dedup: video_id tách từ URL (ưu tiên), url_hash = sha1(url) (fallback).
+    video_id: Mapped[str | None] = mapped_column(String(120), default=None)
+    url_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     job_id: Mapped[str | None] = mapped_column(
         ForeignKey("jobs.id", ondelete="SET NULL"), default=None
     )

@@ -25,6 +25,7 @@ class VideoSourceOut(BaseModel):
     config: dict
     status: str
     item_count: int
+    duplicate_count: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -38,6 +39,8 @@ class VideoSourceItemOut(BaseModel):
     url: str
     title: str | None
     status: str
+    sheet_row: int | None = None
+    video_id: str | None = None
     job_id: str | None
     created_at: datetime
     updated_at: datetime
@@ -69,3 +72,29 @@ class SheetPreviewRow(BaseModel):
     url: str
     title: str | None
     status: str
+    sheet_row: int | None = None
+
+
+class SheetReadRequest(BaseModel):
+    """Tham số đọc/import Sheet: filter (Backend lọc) + limit (Batch Import)."""
+
+    filter: str = "all"  # all | unprocessed | failed | not_downloaded
+    limit: int | None = None  # None = toàn bộ; 100/500/1000/5000…
+
+
+class SheetCountResult(BaseModel):
+    """Đếm TRƯỚC khi import (hiển thị tổng số sẽ import)."""
+
+    total_rows: int
+    matched: int
+    new: int
+    duplicate: int
+
+
+class SheetImportResult(BaseModel):
+    """Kết quả import từ Sheet (kèm dedup)."""
+
+    source: VideoSourceOut
+    imported: int
+    duplicates: int
+    matched: int

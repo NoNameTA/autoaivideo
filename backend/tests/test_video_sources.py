@@ -6,7 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.errors import ValidationAppError
-from app.services.video_source_service import _parse_sheet
+from app.services.video_dedup import dedup_key, extract_video_id, url_hash
+from app.services.video_source_service import _parse_sheet, _passes_filter
 from tests.conftest import OWNER_HEADERS
 
 
@@ -15,15 +16,53 @@ def test_parse_sheet_extracts_url_column() -> None:
         ["Title", "VideoURL", "Note"],
         ["Phim A", "https://example.com/a.mp4", "x"],
         ["Phim B", "xem ở https://example.com/b.mp4 nhé", "y"],
-        ["", "https://example.com/a.mp4", "trùng"],  # dedup
+        ["", "https://example.com/a.mp4", "trùng"],  # dedup theo key
         ["Phim C", "không có link", "z"],  # bỏ
     ]
     rows = _parse_sheet(values, "VideoURL", "Title")
-    assert [u for u, _ in rows] == ["https://example.com/a.mp4", "https://example.com/b.mp4"]
-    assert rows[0][1] == "Phim A"
+    assert [r["url"] for r in rows] == [
+        "https://example.com/a.mp4",
+        "https://example.com/b.mp4",
+    ]
+    assert rows[0]["title"] == "Phim A"
+    # sheet_row = dòng THẬT (1-based): A ở dòng 2, B ở dòng 3.
+    assert rows[0]["sheet_row"] == 2
+    assert rows[1]["sheet_row"] == 3
     # Sai tên cột -> lỗi rõ ràng.
     with pytest.raises(ValidationAppError):
         _parse_sheet(values, "KhongCo", None)
+
+
+def test_parse_sheet_status_filter_column() -> None:
+    values = [
+        ["VideoURL", "Status"],
+        ["https://t.tiktok.com/v/1", "Done"],
+        ["https://t.tiktok.com/v/2", "Failed"],
+        ["https://t.tiktok.com/v/3", ""],
+    ]
+    rows = _parse_sheet(values, "VideoURL", None, "Status")
+    assert [r["sheet_status"] for r in rows] == ["done", "failed", ""]
+
+    def keep(flt: str) -> list[dict]:
+        return [r for r in rows if _passes_filter(r["sheet_status"], flt)]
+
+    assert keep("unprocessed")[0]["sheet_row"] == 4
+    assert keep("failed")[0]["sheet_row"] == 3
+    assert len(keep("not_downloaded")) == 2
+    assert len(keep("all")) == 3
+
+
+def test_video_dedup_keys() -> None:
+    assert extract_video_id("https://www.tiktok.com/@a/video/7301536509973335303") == (
+        "tiktok:7301536509973335303"
+    )
+    assert extract_video_id("https://www.facebook.com/reel/2421811814978823") == (
+        "fb:2421811814978823"
+    )
+    assert extract_video_id("https://youtu.be/dQw4w9WgXcQ") == "yt:dQw4w9WgXcQ"
+    assert extract_video_id("https://example.com/a.mp4") is None
+    # Không có video_id -> dedup_key = url_hash.
+    assert dedup_key("https://example.com/a.mp4") == url_hash("https://example.com/a.mp4")
 
 
 def _create(client: TestClient, name: str = "Src A") -> str:

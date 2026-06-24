@@ -23,9 +23,25 @@ from app.services.batch_service import BatchService
 from app.services.connection_service import ConnectionService
 from app.services.credential_service import CredentialService
 from app.services.event_service import EventService
+from app.services.video_dedup import dedup_key, extract_video_id, url_hash
 
 _URL_RE = re.compile(r"https?://[^\s,;\"']+")
 _DEFAULT_PROJECT = "Video Sources"
+
+# Bộ lọc import (thực hiện ở Backend, dựa trên cột Status write-back của chính Sheet).
+IMPORT_FILTERS = {"all", "unprocessed", "failed", "not_downloaded"}
+_DEFAULT_STATUS_COLUMN = "Status"
+
+
+def _passes_filter(sheet_status: str, flt: str) -> bool:
+    """sheet_status đã lower. unprocessed=chưa có Status; failed=Failed; not_downloaded=≠Done."""
+    if flt == "unprocessed":
+        return sheet_status == ""
+    if flt == "failed":
+        return sheet_status == "failed"
+    if flt == "not_downloaded":
+        return sheet_status != "done"
+    return True  # all
 
 # job.status -> item.status (suy khi đọc).
 _JOB_TO_ITEM = {
@@ -72,9 +88,16 @@ def _col_index(headers: list[str], name: str | None) -> int | None:
 
 
 def _parse_sheet(
-    values: list[list], url_column: str | None, title_column: str | None
-) -> list[tuple[str, str | None]]:
-    """Hàng đầu = header; lấy URL ở cột `url_column`. Thuần — dùng cho preview + import."""
+    values: list[list],
+    url_column: str | None,
+    title_column: str | None,
+    status_column: str | None = None,
+) -> list[dict]:
+    """Hàng đầu = header; lấy URL ở cột `url_column`. Thuần — dùng cho preview + import.
+
+    Trả list dict: url, title, sheet_row (1-based dòng THẬT), video_id, url_hash, sheet_status.
+    Dedup TRONG sheet theo dedup_key (video_id→url_hash). `status_column` để lọc theo Status.
+    """
     if not values:
         return []
     headers = [str(h) for h in values[0]]
@@ -82,22 +105,36 @@ def _parse_sheet(
     if uidx is None:
         raise ValidationAppError(f"Không tìm thấy cột '{url_column}' trong hàng header")
     tidx = _col_index(headers, title_column)
-    out: list[tuple[str, str | None]] = []
+    sidx = _col_index(headers, status_column)
+    out: list[dict] = []
     seen: set[str] = set()
-    for row in values[1:]:
+    for i, row in enumerate(values[1:]):
         if uidx >= len(row):
             continue
         m = _URL_RE.search(str(row[uidx]))
         if not m:
             continue
         url = m.group(0).rstrip(".,);")
-        if url in seen:
+        key = dedup_key(url)
+        if key in seen:
             continue
-        seen.add(url)
+        seen.add(key)
         title = None
         if tidx is not None and tidx < len(row):
             title = str(row[tidx]).strip() or None
-        out.append((url, title))
+        sheet_status = ""
+        if sidx is not None and sidx < len(row):
+            sheet_status = str(row[sidx]).strip().lower()
+        out.append(
+            {
+                "url": url,
+                "title": title,
+                "sheet_row": i + 2,  # +1 header, +1 vì 1-based
+                "video_id": extract_video_id(url),
+                "url_hash": url_hash(url),
+                "sheet_status": sheet_status,
+            }
+        )
     return out
 
 
@@ -149,22 +186,41 @@ class VideoSourceService:
         links = _extract_links(data)
         if not links:
             raise ValidationAppError("Không tìm thấy URL hợp lệ (http/https)")
+        vids, hashes = await VideoSourceService._existing_keys(session, source_id)
         start = src.item_count
-        for i, (url, title) in enumerate(links):
+        imported = 0
+        duplicates = 0
+        for url, title in links:
+            vid, h = extract_video_id(url), url_hash(url)
+            if (vid and vid in vids) or (h in hashes):
+                duplicates += 1
+                continue
             session.add(
-                VideoSourceItem(source_id=src.id, seq=start + i, url=url, title=title)
+                VideoSourceItem(
+                    source_id=src.id,
+                    seq=start + imported,
+                    url=url,
+                    title=title,
+                    video_id=vid,
+                    url_hash=h,
+                )
             )
-        src.item_count = start + len(links)
-        src.status = "imported"
+            imported += 1
+            if vid:
+                vids.add(vid)
+            hashes.add(h)
+        src.item_count = start + imported
+        src.duplicate_count = (src.duplicate_count or 0) + duplicates
+        if imported:
+            src.status = "imported"
         await session.commit()
         await session.refresh(src)
         return src
 
     # ----- Google Sheets (phương án B: Backend đọc, Agent KHÔNG tham gia preview) -----
     @staticmethod
-    async def _read_sheet_links(
-        session: AsyncSession, source: VideoSource
-    ) -> list[tuple[str, str | None]]:
+    async def _read_sheet_rows(session: AsyncSession, source: VideoSource) -> list[dict]:
+        """Đọc + parse Sheet -> list dict (url/title/sheet_row/video_id/url_hash/sheet_status)."""
         cfg = source.config or {}
         conn_id = cfg.get("connection_id")
         if not conn_id:
@@ -183,44 +239,124 @@ class VideoSourceService:
         await EventService.record(
             entity_type="video_source",
             entity_id=source.id,
-            type="googlesheets.read",
+            type="GoogleSheets.Read",
             data={"rows": len(res["values"]), "spreadsheet_id": spreadsheet_id},
         )
-        return _parse_sheet(res["values"], cfg.get("url_column"), cfg.get("title_column"))
+        return _parse_sheet(
+            res["values"],
+            cfg.get("url_column"),
+            cfg.get("title_column"),
+            cfg.get("status_column", _DEFAULT_STATUS_COLUMN),
+        )
 
     @staticmethod
-    async def preview_sheet(session: AsyncSession, source_id: str) -> list[dict]:
-        """Đọc Sheet trả PREVIEW (chưa tạo item, chưa tạo job)."""
+    def _apply_filter_limit(rows: list[dict], flt: str, limit: int | None) -> list[dict]:
+        out = [r for r in rows if _passes_filter(r["sheet_status"], flt)]
+        if limit is not None and limit > 0:
+            out = out[:limit]
+        return out
+
+    @staticmethod
+    async def _existing_keys(session: AsyncSession, source_id: str) -> tuple[set[str], set[str]]:
+        """(video_id set, url_hash set) của các item đã có trong nguồn — để dedup."""
+        rows = (
+            await session.execute(
+                select(VideoSourceItem.video_id, VideoSourceItem.url_hash).where(
+                    VideoSourceItem.source_id == source_id
+                )
+            )
+        ).all()
+        vids = {v for v, _ in rows if v}
+        hashes = {h for _, h in rows if h}
+        return vids, hashes
+
+    @staticmethod
+    async def preview_sheet(
+        session: AsyncSession, source_id: str, flt: str = "all", limit: int | None = None
+    ) -> list[dict]:
+        """Đọc Sheet trả PREVIEW (chưa tạo item, chưa tạo job). Có filter + limit."""
         src = await VideoSourceService.get(session, source_id)
-        links = await VideoSourceService._read_sheet_links(session, src)
+        rows = await VideoSourceService._read_sheet_rows(session, src)
+        rows = VideoSourceService._apply_filter_limit(rows, flt, limit)
         return [
-            {"seq": i, "url": url, "title": title, "status": "pending"}
-            for i, (url, title) in enumerate(links)
+            {
+                "seq": i,
+                "url": r["url"],
+                "title": r["title"],
+                "status": "pending",
+                "sheet_row": r["sheet_row"],
+            }
+            for i, r in enumerate(rows)
         ]
 
     @staticmethod
-    async def import_from_sheet(session: AsyncSession, source_id: str) -> VideoSource:
-        """Đọc Sheet -> tạo Video Source Item (KHÔNG tải video, KHÔNG tạo job)."""
+    async def count_sheet(session: AsyncSession, source_id: str, flt: str = "all") -> dict:
+        """Đếm TRƯỚC khi import: tổng dòng, khớp filter, mới (sẽ import) vs trùng (dedup)."""
         src = await VideoSourceService.get(session, source_id)
-        links = await VideoSourceService._read_sheet_links(session, src)
-        if not links:
-            raise ValidationAppError("Sheet không có URL hợp lệ ở cột đã chọn")
+        rows = await VideoSourceService._read_sheet_rows(session, src)
+        matched = [r for r in rows if _passes_filter(r["sheet_status"], flt)]
+        vids, hashes = await VideoSourceService._existing_keys(session, source_id)
+        new_count = 0
+        for r in matched:
+            if (r["video_id"] and r["video_id"] in vids) or (r["url_hash"] in hashes):
+                continue
+            new_count += 1
+        return {
+            "total_rows": len(rows),
+            "matched": len(matched),
+            "new": new_count,
+            "duplicate": len(matched) - new_count,
+        }
+
+    @staticmethod
+    async def import_from_sheet(
+        session: AsyncSession, source_id: str, flt: str = "all", limit: int | None = None
+    ) -> dict:
+        """Đọc Sheet -> tạo Item (KHÔNG tải/tạo job). Filter + limit + DEDUP (video_id/url/hash)."""
+        if flt not in IMPORT_FILTERS:
+            raise ValidationAppError(f"Filter không hợp lệ: {flt}")
+        src = await VideoSourceService.get(session, source_id)
+        rows = await VideoSourceService._read_sheet_rows(session, src)
+        rows = VideoSourceService._apply_filter_limit(rows, flt, limit)
+        if not rows:
+            raise ValidationAppError("Không có dòng nào khớp filter (hoặc Sheet trống)")
+        vids, hashes = await VideoSourceService._existing_keys(session, source_id)
         start = src.item_count
-        for i, (url, title) in enumerate(links):
+        imported = 0
+        duplicates = 0
+        for r in rows:
+            vid, h = r["video_id"], r["url_hash"]
+            if (vid and vid in vids) or (h in hashes):
+                duplicates += 1
+                continue
             session.add(
-                VideoSourceItem(source_id=src.id, seq=start + i, url=url, title=title)
+                VideoSourceItem(
+                    source_id=src.id,
+                    seq=start + imported,
+                    url=r["url"],
+                    title=r["title"],
+                    sheet_row=r["sheet_row"],
+                    video_id=vid,
+                    url_hash=h,
+                )
             )
-        src.item_count = start + len(links)
-        src.status = "imported"
+            imported += 1
+            if vid:
+                vids.add(vid)
+            hashes.add(h)
+        src.item_count = start + imported
+        src.duplicate_count = (src.duplicate_count or 0) + duplicates
+        if imported:
+            src.status = "imported"
         await session.commit()
         await session.refresh(src)
         await EventService.record(
             entity_type="video_source",
             entity_id=src.id,
-            type="googlesheets.import",
-            data={"imported": len(links)},
+            type="GoogleSheets.Import",
+            data={"imported": imported, "duplicates": duplicates, "filter": flt},
         )
-        return src
+        return {"source": src, "imported": imported, "duplicates": duplicates, "matched": len(rows)}
 
     @staticmethod
     async def list_items(session: AsyncSession, source_id: str) -> list[VideoSourceItem]:
@@ -298,4 +434,9 @@ class VideoSourceService:
             item.status = "processing"
         src.status = "running"
         await session.commit()
+        # Tạo sẵn cột write-back 1 lần (nếu nguồn google_sheets bật writeback) — tránh race header.
+        if src.source_type == "google_sheets" and (src.config or {}).get("writeback"):
+            from app.services.sheet_writeback import ensure_writeback_columns
+
+            await ensure_writeback_columns(session, src)
         return batch.id, len(jobs)
