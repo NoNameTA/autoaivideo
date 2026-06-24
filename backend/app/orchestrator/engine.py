@@ -35,6 +35,7 @@ from app.services.event_service import EventService
 log = logging.getLogger("orchestrator")
 
 _TERMINAL_JOB = {JobStatus.completed, JobStatus.failed, JobStatus.cancelled}
+_DOWNLOAD_ADAPTER = "media.download"  # capability tải video (yt-dlp) — gắn log Video.Download.*
 
 
 class OrchestratorEngine:
@@ -177,6 +178,20 @@ class OrchestratorEngine:
                     job_id=step.job_id,
                     capability=step.adapter,
                 )
+            # Log nghiệp vụ (SPEC Logs v1.0 §9): Workflow.Start (step đầu) + Video.Download.Start.
+            if step.order == 0:
+                await self._activity(
+                    "Workflow.Start",
+                    job_id=step.job_id,
+                    pipeline=(job.pipeline if job else None),
+                )
+            if step.adapter == _DOWNLOAD_ADAPTER:
+                await self._activity(
+                    "Video.Download.Start",
+                    step_id=step.id,
+                    job_id=step.job_id,
+                    url=(job.vars.get("url") if job else None),
+                )
 
     async def on_progress(
         self, step_id: str, pct: int | None, msg: str | None = None
@@ -188,6 +203,7 @@ class OrchestratorEngine:
             job = await session.get(Job, step.job_id)
             if job and pct is not None:
                 # Cập nhật % của job đang chạy để Queue (jobs-all) hiển thị realtime.
+                old_pct = job.progress or 0
                 job.progress = pct
                 await session.commit()
                 await manager.broadcast(
@@ -206,6 +222,11 @@ class OrchestratorEngine:
                 await manager.broadcast(
                     "job.progress", {"job_id": job.id, "progress": pct, "msg": msg}
                 )
+                # Log Video.Download.Progress THROTTLE theo mốc 25% (tránh ngập Logs).
+                if step.adapter == _DOWNLOAD_ADAPTER and (old_pct // 25) != (pct // 25):
+                    await self._activity(
+                        "Video.Download.Progress", job_id=job.id, step_id=step_id, pct=pct, msg=msg
+                    )
             if is_plugin_capability(step.adapter):
                 await self._activity(
                     "plugin.runtime.progress", step_id=step_id, capability=step.adapter, pct=pct
@@ -240,6 +261,14 @@ class OrchestratorEngine:
                     step_id=step.id,
                     job_id=step.job_id,
                     capability=step.adapter,
+                )
+            if step.adapter == _DOWNLOAD_ADAPTER:
+                await self._activity(
+                    "Video.Download.End",
+                    step_id=step.id,
+                    job_id=step.job_id,
+                    bytes=int(sum(int(a.get("size", 0)) for a in assets)),
+                    files=len(assets),
                 )
             await self._advance(session, step.job_id)
 
@@ -330,8 +359,14 @@ class OrchestratorEngine:
             status=job.status,
             progress=job.progress,
         )
-        # Google Sheets write-back (additive, session riêng, KHÔNG làm hỏng engine nếu lỗi).
         if became_terminal:
+            await self._activity(
+                "Workflow.End",
+                job_id=job.id,
+                batch_id=job.batch_id,
+                status=str(job.status),
+            )
+            # Google Sheets write-back (additive, session riêng, KHÔNG làm hỏng engine nếu lỗi).
             from app.services.sheet_writeback import on_job_terminal
 
             await on_job_terminal(job.id)

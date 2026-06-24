@@ -28,6 +28,12 @@ async def list_sources(session: SessionDep) -> list[VideoSourceOut]:
     return await VideoSourceService.list(session)  # type: ignore[return-value]
 
 
+@router.get("/summary")
+async def sources_summary(session: SessionDep) -> dict:
+    """Tổng hợp số lượng theo nguồn + theo loại + tổng (UI không cần mở từng nguồn)."""
+    return await VideoSourceService.summary(session)
+
+
 @router.post("", response_model=VideoSourceOut, status_code=status.HTTP_201_CREATED)
 async def create_source(data: VideoSourceCreate, session: SessionDep) -> VideoSourceOut:
     return await VideoSourceService.create(  # type: ignore[return-value]

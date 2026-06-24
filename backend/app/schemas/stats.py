@@ -24,6 +24,17 @@ class VideoStats(BaseModel):
     total_asset_bytes: int
 
 
+class DownloadStats(BaseModel):
+    """Metric tải video (media.download / yt-dlp)."""
+
+    downloads_total: int
+    downloads_success: int
+    downloads_failed: int
+    total_bytes: int
+    download_seconds: float
+    avg_speed_bps: float
+
+
 class StatsOut(BaseModel):
     """Thống kê vận hành (SPEC 02 §7)."""
 
@@ -37,4 +48,5 @@ class StatsOut(BaseModel):
     throughput: list[ThroughputPoint]
     adapters: list[AdapterStat]
     video: VideoStats
+    download: DownloadStats
     generated_at: datetime

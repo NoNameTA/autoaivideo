@@ -43,6 +43,7 @@ class StatsService:
         fail_rate = round(failed / finished, 4) if finished else 0.0
 
         video = await StatsService._video(session)
+        download = await StatsService._download(session)
 
         return {
             "jobs_total": jobs_total,
@@ -55,7 +56,47 @@ class StatsService:
             "throughput": throughput,
             "adapters": adapters,
             "video": video,
+            "download": download,
             "generated_at": utcnow(),
+        }
+
+    @staticmethod
+    async def _download(session: AsyncSession) -> dict:
+        """Metric tải video THẬT (media.download): lượt, thành công/lỗi, dung lượng, tốc độ."""
+        rows = (
+            await session.execute(
+                select(Step.status, Step.started_at, Step.finished_at).where(
+                    Step.adapter == "media.download"
+                )
+            )
+        ).all()
+        total = len(rows)
+        success = 0
+        failed = 0
+        secs = 0.0
+        for status, started_at, finished_at in rows:
+            s = str(status)
+            if s == StepStatus.completed.value:
+                success += 1
+            elif s == StepStatus.failed.value:
+                failed += 1
+            if started_at is not None and finished_at is not None:
+                secs += max((finished_at - started_at).total_seconds(), 0.0)
+        byte_rows = (
+            await session.execute(
+                select(Asset.size)
+                .join(Step, Asset.step_id == Step.id)
+                .where(Step.adapter == "media.download")
+            )
+        ).scalars().all()
+        total_bytes = int(sum(b or 0 for b in byte_rows))
+        return {
+            "downloads_total": total,
+            "downloads_success": success,
+            "downloads_failed": failed,
+            "total_bytes": total_bytes,
+            "download_seconds": round(secs, 2),
+            "avg_speed_bps": round(total_bytes / secs, 2) if secs > 0 else 0.0,
         }
 
     @staticmethod

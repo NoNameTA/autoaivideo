@@ -51,6 +51,9 @@ def _infer_entity(kind: str, data: dict[str, Any]) -> tuple[str, str]:
     """Suy (entity_type, entity_id) từ loại event để lọc theo nhóm ở trang Logs."""
     if kind.startswith("plugin."):
         return "plugin", str(data.get("capability") or data.get("name") or "")
+    # Log nghiệp vụ v1.0: Video.Download.* / Workflow.* gắn vào job để lọc theo job.
+    if (kind.startswith(("Video.Download", "Workflow"))) and data.get("job_id"):
+        return "job", str(data.get("job_id"))
     if kind.startswith("job"):
         return "job", str(data.get("job_id") or "")
     if kind.startswith("step"):

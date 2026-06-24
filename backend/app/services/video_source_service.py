@@ -145,6 +145,74 @@ class VideoSourceService:
         return list((await session.execute(stmt)).scalars().all())
 
     @staticmethod
+    async def summary(session: AsyncSession) -> dict:
+        """Tổng hợp Video Sources: theo nguồn + theo loại + tổng (Ready/Running/Done/Failed/Dup).
+
+        status item SUY từ job đã link (không đụng engine), gom 1 lượt cho mọi nguồn.
+        """
+        sources = list(
+            (
+                await session.execute(
+                    select(VideoSource).order_by(VideoSource.created_at.desc())
+                )
+            ).scalars().all()
+        )
+        item_rows = (
+            await session.execute(
+                select(
+                    VideoSourceItem.source_id, VideoSourceItem.status, VideoSourceItem.job_id
+                )
+            )
+        ).all()
+        job_ids = [jid for _, _, jid in item_rows if jid]
+        jmap: dict[str, str] = {}
+        if job_ids:
+            jrows = (
+                await session.execute(select(Job.id, Job.status).where(Job.id.in_(job_ids)))
+            ).all()
+            jmap = {jid: str(st) for jid, st in jrows}
+
+        def _blank() -> dict:
+            return {"pending": 0, "processing": 0, "done": 0, "failed": 0}
+
+        per_source: dict[str, dict] = {s.id: _blank() for s in sources}
+        for sid, status, jid in item_rows:
+            resolved = _JOB_TO_ITEM.get(jmap.get(jid or ""), str(status))
+            d = per_source.setdefault(sid, _blank())
+            d[resolved] = d.get(resolved, 0) + 1
+
+        by_type: dict[str, dict] = {}
+        totals = {**_blank(), "items": 0, "sources": len(sources), "duplicate": 0}
+        out_sources = []
+        for s in sources:
+            bs = per_source.get(s.id, _blank())
+            items = sum(bs.values())
+            out_sources.append(
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "source_type": s.source_type,
+                    "status": s.status,
+                    "item_count": s.item_count,
+                    "duplicate_count": s.duplicate_count or 0,
+                    "by_status": bs,
+                }
+            )
+            t = by_type.setdefault(
+                s.source_type, {"sources": 0, "items": 0, "duplicate": 0, **_blank()}
+            )
+            t["sources"] += 1
+            t["items"] += items
+            t["duplicate"] += s.duplicate_count or 0
+            for k in bs:
+                t[k] += bs[k]
+            for k in bs:
+                totals[k] += bs[k]
+            totals["items"] += items
+            totals["duplicate"] += s.duplicate_count or 0
+        return {"totals": totals, "by_type": by_type, "sources": out_sources}
+
+    @staticmethod
     async def get(session: AsyncSession, source_id: str) -> VideoSource:
         src = await session.get(VideoSource, source_id)
         if src is None:

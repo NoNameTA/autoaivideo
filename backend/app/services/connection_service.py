@@ -72,6 +72,21 @@ class ConnectionService:
         conn.health_status = "connected" if result["ok"] else "error"
         conn.last_check = utcnow()
         await session.commit()
+        # Log nghiệp vụ (SPEC Logs v1.0 §9): GoogleSheets.Connect — KHÔNG log token/secret.
+        from app.services.event_service import EventService
+
+        await EventService.record(
+            entity_type="connection",
+            entity_id=conn.id,
+            type="GoogleSheets.Connect",
+            data={
+                "ok": result["ok"],
+                "provider": conn.provider,
+                **({"title": result["title"]} if result.get("title") else {}),
+                **({"error": result["error"]} if not result["ok"] and result.get("error") else {}),
+            },
+            level=None if result["ok"] else "error",
+        )
         return {
             "ok": result["ok"],
             "health_status": conn.health_status,
