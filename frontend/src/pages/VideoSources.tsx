@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ApiError } from "../api/client";
 import {
   useAddVideoLinks,
+  useBvsEdit,
   useConnections,
   useCountVideoSheet,
   useCreateVariations,
@@ -274,6 +275,7 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
   const delItem = useDeleteVideoItem(sourceId);
   const run = useRunVideoSource(sourceId);
   const variations = useCreateVariations(sourceId);
+  const bvsEdit = useBvsEdit(sourceId);
   const push = useUiStore((s) => s.pushToast);
   const onErr = (e: unknown) => push("error", (e as ApiError).message);
 
@@ -371,6 +373,25 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
     );
   };
 
+  const runBvsEdit = () => {
+    const targets = (items.data ?? []).filter(
+      (it) => selected.has(it.id) && it.status === "done",
+    );
+    if (targets.length === 0) {
+      push("error", "Chọn video ĐÃ TẢI XONG (done) để chỉnh bằng BVS");
+      return;
+    }
+    targets.forEach((it) =>
+      bvsEdit.mutate(
+        { itemId: it.id },
+        {
+          onSuccess: () => push("success", `🎞️ Đã gửi "${it.title || "video"}" cho Bulk Video Studio chỉnh`),
+          onError: onErr,
+        },
+      ),
+    );
+  };
+
   return (
     <div className="mt-6 rounded-lg border border-border bg-bg p-4">
       {/* Nhập nguồn theo loại */}
@@ -455,6 +476,11 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
         <button onClick={runVariations} disabled={variations.isPending}
           className="ml-auto rounded bg-primary px-3 py-1 text-white hover:bg-primary-hover disabled:opacity-50">
           🎬 Tạo biến thể (video done đã chọn)
+        </button>
+        <button onClick={runBvsEdit} disabled={bvsEdit.isPending}
+          title="Chỉnh bằng bộ công cụ Bulk Video Studio (cần mở BulkAuto agent :8787)"
+          className="rounded border border-border px-3 py-1 text-text hover:bg-border disabled:opacity-50">
+          🎞️ Chỉnh bằng BVS
         </button>
       </div>
 

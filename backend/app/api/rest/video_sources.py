@@ -5,6 +5,8 @@ from fastapi import APIRouter, Depends, status
 from app.api.deps import SessionDep, require_owner
 from app.schemas.video_source import (
     AddLinks,
+    BvsEditRequest,
+    BvsEditResult,
     RunRequest,
     RunResult,
     SheetCountResult,
@@ -123,3 +125,14 @@ async def create_variations(
         session, source_id, item_id, req.count, req.model_dump()
     )
     return VariationResult(batch_id=batch_id, count=count)
+
+
+@router.post("/{source_id}/items/{item_id}/bvs-edit", response_model=BvsEditResult)
+async def bvs_edit(
+    source_id: str, item_id: str, req: BvsEditRequest, session: SessionDep
+) -> BvsEditResult:
+    """Chỉnh 1 video đã tải bằng bộ công cụ Bulk Video Studio (qua agent BulkAuto)."""
+    batch_id = await VariationService.create_bvs_edit(
+        session, source_id, item_id, req.bulkauto_url, req.bvs_config
+    )
+    return BvsEditResult(batch_id=batch_id)

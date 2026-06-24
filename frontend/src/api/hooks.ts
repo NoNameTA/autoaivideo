@@ -239,6 +239,17 @@ export function useCreateVariations(id: string) {
   });
 }
 
+export function useBvsEdit(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { itemId: string; bulkauto_url?: string; bvs_config?: object }) => {
+      const { itemId, ...body } = vars;
+      return endpoints.bvsEdit(id, itemId, body);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs-all"] }),
+  });
+}
+
 export function useRunVideoSource(id: string) {
   const qc = useQueryClient();
   return useMutation({

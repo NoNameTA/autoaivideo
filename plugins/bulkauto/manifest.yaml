@@ -1,0 +1,10 @@
+name: bulkauto
+version: 1.0.0
+capability: video.bulkauto
+type: cli-process
+free: true
+license: Proprietary-Free
+source_url: https://github.com/TranQA28/bulk-video-studio-automation
+automation_allowed: true
+entrypoint: adapter:BulkAutoAdapter
+requires_sdk: "1.0.0"

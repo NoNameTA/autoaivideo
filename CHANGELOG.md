@@ -4,6 +4,28 @@
 
 ## [Unreleased]
 
+### Tích hợp Bulk Video Studio — web chỉnh video bằng bộ công cụ của BVS (2026-06-24)
+> Web AI Video Platform có thể chỉnh video bằng **bộ công cụ của app Bulk Video Studio** (reels
+> 1080×1920, logo/intro/outro/nhạc, phụ đề whisper, speed) — **bổ sung** cạnh biến thể ffmpeg.
+> Kiến trúc: nối tới **agent BulkAuto** (TranQA28, đã lái BVS qua CDP) qua HTTP `:8787`. Additive.
+
+#### Added
+- **Plugin agent `bulkauto`** (capability `video.bulkauto`, `plugins/bulkauto/`): resolve video
+  nguồn → copy vào input tạm → `POST :8787/api/run` → poll `/api/status` → thu file đã chỉnh
+  (`results[].output`) về asset. Chỉ stdlib (urllib). Bận → TransientError (retry); ép progress về int.
+- **Pipeline `bvs_edit`** (1 step `video.bulkauto`).
+- **`VariationService.create_bvs_edit`** + REST `POST /video-sources/{id}/items/{item_id}/bvs-edit`.
+  Log `Video.BvsEdit`.
+- **FE**: nút **"🎞️ Chỉnh bằng BVS"** cạnh "🎬 Tạo biến thể" (áp video done đã chọn).
+
+#### Verified (LIVE, BVS render thật)
+- Tải Big Buck Bunny → "Chỉnh bằng BVS" → chuỗi **web → agent → BulkAuto → BVS (CDP)** chạy thật:
+  BVS render `..._reels.mp4` (style black_white_bg, speed 1.26) → agent thu asset
+  **`bvs_..._reels.mp4` 7.3MB**, job **completed**. Fix bug: ép progress dict→int (tránh treo job);
+  BVS bận → retry. ruff ✅ pytest 60/1skip; FE lint+build ✅; không lỗi console.
+- **Điều kiện tiên quyết:** mở **BulkAuto agent** (`python web.py` ở C:\BulkAuto → `:8787`) + BVS đã
+  cài (chạy `BAM_1_LAN_CAI_DAT_CHO_NHAN_VIEN.bat`). Cùng máy.
+
 ### Video Variations — 1 video → N bản chỉnh sửa bằng ffmpeg THẬT (2026-06-24)
 > Từ 1 video đã tải, tạo N biến thể tự động bằng ffmpeg (spin tránh trùng + đổi tỉ lệ + caption/
 > watermark/music tuỳ chọn). Additive: tái dùng engine/queue (mỗi biến thể = 1 job pipeline mới).

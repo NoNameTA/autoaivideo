@@ -113,6 +113,11 @@ export const endpoints = {
       `/api/v1/video-sources/${id}/items/${itemId}/variations`,
       data,
     ),
+  bvsEdit: (id: string, itemId: string, data: { bulkauto_url?: string; bvs_config?: object }) =>
+    http.post<{ batch_id: string }>(
+      `/api/v1/video-sources/${id}/items/${itemId}/bvs-edit`,
+      data,
+    ),
 
   listExternalApps: () => http.get<ExternalApp[]>("/api/v1/external-apps"),
   testExternalApp: (name: string) =>

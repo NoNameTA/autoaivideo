@@ -203,3 +203,43 @@ class VariationService:
             data={"item_id": item_id, "count": count, "ratios": options.get("ratios")},
         )
         return batch.id, count
+
+    @staticmethod
+    async def create_bvs_edit(
+        session: AsyncSession,
+        source_id: str,
+        item_id: str,
+        bulkauto_url: str | None,
+        bvs_config: dict | None,
+        project_id: str | None = None,
+    ) -> str:
+        """Chỉnh 1 video đã tải bằng bộ công cụ Bulk Video Studio (qua agent BulkAuto)."""
+        from app.services.video_source_service import VideoSourceService
+
+        item = await session.get(VideoSourceItem, item_id)
+        if item is None or item.source_id != source_id:
+            raise NotFoundError(f"Item '{item_id}' không thuộc nguồn này")
+        asset = await VariationService._source_asset(session, item)
+        row: dict = {"source": asset.path, "title": f"BVS — {(item.title or 'video')[:60]}"}
+        if bulkauto_url:
+            row["bulkauto_url"] = bulkauto_url
+        if bvs_config:
+            row["bvs_config"] = bvs_config
+        pid = project_id or await VideoSourceService._default_project_id(session)
+        batch = await BatchService.create(
+            session,
+            pid,
+            BatchCreate(
+                name=f"BVS edit: {(item.title or 'video')[:40]}",
+                inputs=[row],
+                pipeline="bvs_edit",
+            ),
+        )
+        await session.commit()
+        await EventService.record(
+            entity_type="video_source",
+            entity_id=source_id,
+            type="Video.BvsEdit",
+            data={"item_id": item_id},
+        )
+        return batch.id

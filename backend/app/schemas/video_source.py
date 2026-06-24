@@ -116,3 +116,14 @@ class VariationRequest(BaseModel):
 class VariationResult(BaseModel):
     batch_id: str
     count: int
+
+
+class BvsEditRequest(BaseModel):
+    """Chỉnh video bằng Bulk Video Studio (qua agent BulkAuto :8787)."""
+
+    bulkauto_url: str | None = None  # mặc định http://127.0.0.1:8787
+    bvs_config: dict | None = None  # cấu hình BVS tuỳ chọn (logo/intro/outro/nhạc/speed/phụ đề)
+
+
+class BvsEditResult(BaseModel):
+    batch_id: str

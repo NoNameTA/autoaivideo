@@ -1,0 +1,11 @@
+{
+  "name": "bvs_edit",
+  "description": "Chỉnh video bằng bộ công cụ Bulk Video Studio (qua agent BulkAuto :8787).",
+  "steps": [
+    {
+      "step_key": "bvs",
+      "adapter": "video.bulkauto",
+      "config": {}
+    }
+  ]
+}
