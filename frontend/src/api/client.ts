@@ -11,8 +11,17 @@ export class ApiError extends Error {
   }
 }
 
+/** Chuẩn hoá API Base: trim, tự thêm http:// nếu thiếu scheme, bỏ dấu '/' thừa ở cuối.
+ *  Trống = same-origin. Giúp người dùng nhập 'localhost:8000' / có '/' cuối vẫn chạy. */
+export function normalizeBase(base: string | undefined | null): string {
+  const b = (base ?? "").trim();
+  if (!b) return "";
+  const withScheme = /^https?:\/\//i.test(b) ? b : `http://${b}`;
+  return withScheme.replace(/\/+$/, "");
+}
+
 function buildUrl(path: string): string {
-  return `${useSettingsStore.getState().apiBase}${path}`;
+  return `${normalizeBase(useSettingsStore.getState().apiBase)}${path}`;
 }
 
 async function request<T>(

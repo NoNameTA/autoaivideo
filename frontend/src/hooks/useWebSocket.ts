@@ -1,6 +1,7 @@
 // Quản lý vòng đời 1 kết nối WS dashboard + đồng bộ React Query khi có realtime (SPEC 03 §4).
 import { useEffect } from "react";
 
+import { normalizeBase } from "../api/client";
 import { WsClient, type WsMessage } from "../api/ws";
 import { qk } from "../api/hooks";
 import { queryClient } from "../lib/queryClient";
@@ -38,7 +39,7 @@ export function getWsClient(): WsClient | null {
 }
 
 function wsUrl(token: string): string {
-  const base = useSettingsStore.getState().apiBase || window.location.origin;
+  const base = normalizeBase(useSettingsStore.getState().apiBase) || window.location.origin;
   return `${base.replace(/^http/, "ws")}/ws?token=${encodeURIComponent(token)}`;
 }
 
