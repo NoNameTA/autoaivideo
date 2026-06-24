@@ -4,6 +4,48 @@
 
 ## [Unreleased]
 
+### v1.0 Completion — Write-back, Dedup, Filter/Batch, Auto-Refresh, Logs, Stats (2026-06-24)
+> Hoàn thiện các hạng mục còn thiếu để đạt **v1.0**. **100% additive** trên kiến trúc cũ — KHÔNG
+> refactor engine/queue/pipeline/route/theme/agent-core/DB hiện có. Không mock; tất cả test thật.
+
+#### Added — Backend
+- **Google Sheets Write-back** (`services/sheet_writeback.py` + `cloud/google_sheets.py` write API):
+  khi Job từ nguồn `google_sheets` kết thúc, ghi về **ĐÚNG DÒNG** (`sheet_row`) các cột
+  **Status / Output File / Output URL / Finished Time / Processing Duration / Workflow / Error**.
+  Tự tạo cột nếu thiếu (KHÔNG đụng cột Link Video / cột sẵn có). **Output URL để TRỐNG** (chờ owner
+  chỉ định đích upload — đã thống nhất). Hook ở `engine._advance` khi job terminal (session riêng,
+  lỗi không làm hỏng engine); `ensure_columns` 1 lần lúc Run để tránh race header.
+- **Dedup** (`services/video_dedup.py`): Video ID (TikTok/Facebook/YouTube/Instagram) → URL →
+  `sha1(url)`. Áp dụng cho import-sheet & add_links; không tạo item/Job trùng; đếm `duplicate_count`.
+- **Import Filter** (Backend lọc): `all | unprocessed | failed | not_downloaded` theo cột Status
+  của Sheet. **Batch Import**: `limit` 100/500/1000/5000/all + endpoint **`count-sheet`** (đếm trước:
+  total/matched/new/duplicate).
+- **Video Sources summary** (`GET /video-sources/summary`): tổng hợp theo nguồn + theo loại + tổng
+  (Ready/Running/Done/Failed/Duplicate), realtime (Auto Refresh).
+- **Logs nghiệp vụ**: `Workflow.Start/End`, `Video.Download.Start/Progress(throttle 25%)/End`,
+  `GoogleSheets.Connect/Read/Import/Update`. **KHÔNG log token/credential/private_key**.
+- **Statistics**: khối `download` (downloads_total/success/failed, total_bytes, download_seconds,
+  avg_speed_bps). Migration `f1d3b9a7c204` (sheet_row/video_id/url_hash + duplicate_count).
+
+#### Added — Frontend
+- Video Sources: **SummaryHeader** + badges theo nguồn + theo loại (không cần mở từng nguồn).
+- SheetConfig: Import Filter + Batch + nút **Đếm trước** + toggle **Write-back** (+ worksheet ghi);
+  preview enrich (dòng thật/Title/Source/URL/Status).
+- **Auto Refresh** (Tắt/30s/1m/5m) ở Video Sources + Statistics (incremental, không reload trang).
+- Statistics: khối **Download** (lượt/thành công/lỗi/dung lượng/tốc độ TB/thời gian).
+
+#### Verified (LIVE, không mock)
+- **Write-back** trên tab TEST riêng `WritebackTest`: tự tạo 7 cột, ghi đúng dòng 2/3/4 (Done +
+  Output File/Duration/Workflow) & dòng 5 (Failed + Error = thông báo yt-dlp thật). KHÔNG đụng
+  `Trang tính1`.
+- **Dedup**: re-import 3 dòng → 0 imported / 3 duplicate. **Count**: 4 khớp / 0 mới / 4 trùng.
+- **Logs**: 1 job thật phát đủ Workflow.Start/End + Video.Download.Start/Progress×3/End +
+  GoogleSheets.Update; **không lộ token** (đã kiểm tra regex). **Stats** download = 24 lượt
+  (21 ok/2 fail, 328MB, 2.2MB/s).
+- **Browser**: summary + badges đúng số; Đếm trước/Filter/Batch/Write-back hoạt động; **Add File**
+  (.txt) import OK + lỗi hiện toast rõ (không im lặng). Backend ruff ✅ pytest ✅; FE lint+build ✅;
+  không lỗi console.
+
 ### Video Sources — Pha 2B: Google Sheets LIVE — ✅ ĐÃ TEST THẬT (không mock) (2026-06-24)
 > Chạy **integration test LIVE** với Google Sheets THẬT (credential Service Account của owner +
 > spreadsheet thật). Toàn bộ luồng end-to-end đã chứng minh: **Test Connection → Read → Preview →
