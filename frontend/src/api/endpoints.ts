@@ -22,6 +22,7 @@ import type {
   ProjectCreate,
   ProjectUpdate,
   RunResult,
+  SheetPreviewRow,
   Stats,
   VideoSource,
   VideoSourceItem,
@@ -75,7 +76,13 @@ export const endpoints = {
   listVideoSources: () => http.get<VideoSource[]>("/api/v1/video-sources"),
   createVideoSource: (data: { name: string; source_type?: string; config?: Record<string, unknown> }) =>
     http.post<VideoSource>("/api/v1/video-sources", data),
+  updateVideoSource: (id: string, data: { name?: string; config?: Record<string, unknown> }) =>
+    http.patch<VideoSource>(`/api/v1/video-sources/${id}`, data),
   deleteVideoSource: (id: string) => http.del(`/api/v1/video-sources/${id}`),
+  readVideoSheet: (id: string) =>
+    http.post<SheetPreviewRow[]>(`/api/v1/video-sources/${id}/read-sheet`),
+  importVideoSheet: (id: string) =>
+    http.post<VideoSource>(`/api/v1/video-sources/${id}/import-sheet`),
   listVideoItems: (id: string) => http.get<VideoSourceItem[]>(`/api/v1/video-sources/${id}/items`),
   addVideoLinks: (id: string, data: { urls?: string[]; text?: string }) =>
     http.post<VideoSource>(`/api/v1/video-sources/${id}/links`, data),

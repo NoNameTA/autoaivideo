@@ -4,6 +4,32 @@
 
 ## [Unreleased]
 
+### Video Sources — Pha 2: Google Sheets (read/preview/import) — Ready for Integration Test (2026-06-24)
+> Mở rộng Video Sources (KHÔNG tách module/trang mới): thêm `source_type=google_sheets`. **Google Sheets
+> chỉ là NGUỒN link** (đọc), không lưu/render video. **Preview = phương án B**: Website→Backend→Adapter
+> đọc Sheet (Agent KHÔNG tham gia preview). Sau Import dùng **Run Workflow** chung Pha 1 → Agent tải
+> yt-dlp. Kế thừa Direct URL, **không đổi** Workflow/Queue/engine/Theme/Dashboard/Settings.
+> ⚠️ **Live read/import/download-từ-Sheet/update CHƯA test với Google thật** — chờ credential (Service
+> Account + Spreadsheet). Phần testable (parsing cột/validation/UI) đã test + verify.
+
+#### Added — Backend
+- `cloud/google_sheets.read_values` (Backend đọc rows). `VideoSourceService`: `preview_sheet`
+  (đọc→trả preview, **không** tạo item/job), `import_from_sheet` (đọc→tạo item), `update` (sửa config),
+  helper `_parse_sheet` (tách URL theo cột header + dedup). Resolve token qua Connection→Credential
+  (mint JIT). Logs `googlesheets.read`/`googlesheets.import`.
+- REST: `PATCH /video-sources/{id}`, `POST /{id}/read-sheet`, `POST /{id}/import-sheet`.
+
+#### Added — Frontend
+- Trang Video Sources: chọn **Source Type (Direct URL / Google Sheets)**; mode Google Sheets có form
+  **Connection / Spreadsheet ID / Worksheet / Cột link / Cột tên** + **Test Connection / Read Sheet
+  (Preview) / Import**. Direct URL giữ nguyên. SPEC 03 §5 cập nhật.
+
+#### Verified
+- Backend ruff ✅ · pytest ✅ **54 passed** (+2: `_parse_sheet` tách cột/dedup/sai-cột, google_sheets
+  source thiếu connection→422). Frontend lint ✅ · build ✅ (125.90 KB gzip).
+- Browser: mode Google Sheets render đúng (form + nút); **Direct URL Pha 1 KHÔNG hỏng** (đã kiểm).
+  **Live Google đọc/import/tải/update để Pha-2 integration test khi có credential** (SETUP_GOOGLE_SHEETS.md).
+
 ### Cloud Adapter Framework + Google Sheets Adapter — Ready for Integration Test (2026-06-24)
 > ⚠️ **CHƯA integration-test với Google thật** (chờ credential — Pha 2). Commit chung vì migration
 > `video_sources` phụ thuộc migration `credentials/connections`. Code **buildable + unit-test pass**;

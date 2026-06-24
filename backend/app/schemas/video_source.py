@@ -11,6 +11,11 @@ class VideoSourceCreate(BaseModel):
     config: dict = {}
 
 
+class VideoSourceUpdate(BaseModel):
+    name: str | None = None
+    config: dict | None = None
+
+
 class VideoSourceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,3 +60,12 @@ class RunRequest(BaseModel):
 class RunResult(BaseModel):
     batch_id: str
     job_count: int
+
+
+class SheetPreviewRow(BaseModel):
+    """1 dòng preview đọc từ Google Sheet (CHƯA import, chưa tạo job)."""
+
+    seq: int
+    url: str
+    title: str | None
+    status: str

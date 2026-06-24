@@ -53,8 +53,11 @@ frontend/src/
 - **Video Sources** (trang `/video-sources`) — quản lý **nguồn video đầu vào** (entity `video_sources`,
   SPEC 10). V1 **Direct URL**: nhập/dán nhiều link, Add/Remove, Import txt/CSV, Preview (STT/title/link/
   status, chọn/lọc/tìm/refresh), **Run Workflow** → tạo Job download mỗi link (qua Batch hiện có; Agent
-  tải bằng `media.download`/yt-dlp). V2 **Google Sheets** (đọc link, Preview qua Backend→Adapter). Thiết
-  kế `source_type` mở rộng (CSV/Folder/Drive/Dropbox/OneDrive…) **không** sửa Workflow/Queue.
+  tải bằng `media.download`/yt-dlp). V2 **Google Sheets**: chọn Connection/Spreadsheet/Worksheet/cột link
+  → **Test Connection / Read Sheet (Preview) / Import** — **Backend đọc Sheet qua Adapter** (phương án B,
+  Agent KHÔNG tham gia preview); endpoint `POST /video-sources/{id}/read-sheet|import-sheet`; Logs ghi
+  `googlesheets.read`/`googlesheets.import`. Sau Import dùng **Run Workflow** chung như V1. Thiết kế
+  `source_type` mở rộng (CSV/Folder/Drive/Dropbox/OneDrive…) **không** sửa Workflow/Queue.
 - `AgentCard` — trạng thái agent + capability badge.
 - `PluginConfigForm` — form sinh động từ JSON Schema của plugin (`08`).
 - `PipelineEditor` — **trang Workflow**: tạo/sửa/xoá pipeline (thêm/xoá/sắp xếp step, chọn adapter, config JSON), chạy pipeline (tạo batch), xem DAG các step. Pipeline lưu DB (CRUD `/api/v1/pipelines`), seed built-in từ JSON. *(Kéo-thả trực quan để V2.1+.)*

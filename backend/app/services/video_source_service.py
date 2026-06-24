@@ -10,6 +10,7 @@ import re
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.cloud import google_sheets
 from app.core.errors import NotFoundError, ValidationAppError
 from app.models.enums import JobStatus
 from app.models.job import Job
@@ -19,6 +20,9 @@ from app.models.video_source_item import VideoSourceItem
 from app.schemas.batch import BatchCreate
 from app.schemas.video_source import AddLinks, RunRequest
 from app.services.batch_service import BatchService
+from app.services.connection_service import ConnectionService
+from app.services.credential_service import CredentialService
+from app.services.event_service import EventService
 
 _URL_RE = re.compile(r"https?://[^\s,;\"']+")
 _DEFAULT_PROJECT = "Video Sources"
@@ -57,6 +61,46 @@ def _extract_links(data: AddLinks) -> list[tuple[str, str | None]]:
     return out
 
 
+def _col_index(headers: list[str], name: str | None) -> int | None:
+    if not name:
+        return None
+    target = str(name).strip().lower()
+    for i, h in enumerate(headers):
+        if str(h).strip().lower() == target:
+            return i
+    return None
+
+
+def _parse_sheet(
+    values: list[list], url_column: str | None, title_column: str | None
+) -> list[tuple[str, str | None]]:
+    """Hàng đầu = header; lấy URL ở cột `url_column`. Thuần — dùng cho preview + import."""
+    if not values:
+        return []
+    headers = [str(h) for h in values[0]]
+    uidx = _col_index(headers, url_column)
+    if uidx is None:
+        raise ValidationAppError(f"Không tìm thấy cột '{url_column}' trong hàng header")
+    tidx = _col_index(headers, title_column)
+    out: list[tuple[str, str | None]] = []
+    seen: set[str] = set()
+    for row in values[1:]:
+        if uidx >= len(row):
+            continue
+        m = _URL_RE.search(str(row[uidx]))
+        if not m:
+            continue
+        url = m.group(0).rstrip(".,);")
+        if url in seen:
+            continue
+        seen.add(url)
+        title = None
+        if tidx is not None and tidx < len(row):
+            title = str(row[tidx]).strip() or None
+        out.append((url, title))
+    return out
+
+
 class VideoSourceService:
     @staticmethod
     async def list(session: AsyncSession) -> list[VideoSource]:
@@ -76,6 +120,19 @@ class VideoSourceService:
     ) -> VideoSource:
         src = VideoSource(name=name, source_type=source_type, config=config, status="draft")
         session.add(src)
+        await session.commit()
+        await session.refresh(src)
+        return src
+
+    @staticmethod
+    async def update(
+        session: AsyncSession, source_id: str, name: str | None, config: dict | None
+    ) -> VideoSource:
+        src = await VideoSourceService.get(session, source_id)
+        if name is not None:
+            src.name = name
+        if config is not None:
+            src.config = config
         await session.commit()
         await session.refresh(src)
         return src
@@ -101,6 +158,68 @@ class VideoSourceService:
         src.status = "imported"
         await session.commit()
         await session.refresh(src)
+        return src
+
+    # ----- Google Sheets (phương án B: Backend đọc, Agent KHÔNG tham gia preview) -----
+    @staticmethod
+    async def _read_sheet_links(
+        session: AsyncSession, source: VideoSource
+    ) -> list[tuple[str, str | None]]:
+        cfg = source.config or {}
+        conn_id = cfg.get("connection_id")
+        if not conn_id:
+            raise ValidationAppError("Nguồn Google Sheets thiếu connection_id")
+        conn = await ConnectionService.get(session, conn_id)
+        if not conn.credential_id:
+            raise ValidationAppError("Connection chưa gắn credential")
+        cred = await CredentialService.get(session, conn.credential_id)
+        token, _ = await CredentialService.mint_token(session, cred)
+        settings = conn.settings or {}
+        spreadsheet_id = cfg.get("spreadsheet_id") or settings.get("spreadsheet_id")
+        worksheet = cfg.get("worksheet") or settings.get("worksheet")
+        res = await google_sheets.read_values(token, spreadsheet_id, worksheet)
+        if not res["ok"]:
+            raise ValidationAppError(res["error"])
+        await EventService.record(
+            entity_type="video_source",
+            entity_id=source.id,
+            type="googlesheets.read",
+            data={"rows": len(res["values"]), "spreadsheet_id": spreadsheet_id},
+        )
+        return _parse_sheet(res["values"], cfg.get("url_column"), cfg.get("title_column"))
+
+    @staticmethod
+    async def preview_sheet(session: AsyncSession, source_id: str) -> list[dict]:
+        """Đọc Sheet trả PREVIEW (chưa tạo item, chưa tạo job)."""
+        src = await VideoSourceService.get(session, source_id)
+        links = await VideoSourceService._read_sheet_links(session, src)
+        return [
+            {"seq": i, "url": url, "title": title, "status": "pending"}
+            for i, (url, title) in enumerate(links)
+        ]
+
+    @staticmethod
+    async def import_from_sheet(session: AsyncSession, source_id: str) -> VideoSource:
+        """Đọc Sheet -> tạo Video Source Item (KHÔNG tải video, KHÔNG tạo job)."""
+        src = await VideoSourceService.get(session, source_id)
+        links = await VideoSourceService._read_sheet_links(session, src)
+        if not links:
+            raise ValidationAppError("Sheet không có URL hợp lệ ở cột đã chọn")
+        start = src.item_count
+        for i, (url, title) in enumerate(links):
+            session.add(
+                VideoSourceItem(source_id=src.id, seq=start + i, url=url, title=title)
+            )
+        src.item_count = start + len(links)
+        src.status = "imported"
+        await session.commit()
+        await session.refresh(src)
+        await EventService.record(
+            entity_type="video_source",
+            entity_id=src.id,
+            type="googlesheets.import",
+            data={"imported": len(links)},
+        )
         return src
 
     @staticmethod

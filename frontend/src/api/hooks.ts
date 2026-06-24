@@ -149,6 +149,30 @@ export function useDeleteVideoSource() {
   });
 }
 
+export function useUpdateVideoSource(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { name?: string; config?: Record<string, unknown> }) =>
+      endpoints.updateVideoSource(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["video-sources"] }),
+  });
+}
+
+export function useReadVideoSheet(id: string) {
+  return useMutation({ mutationFn: () => endpoints.readVideoSheet(id) });
+}
+
+export function useImportVideoSheet(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => endpoints.importVideoSheet(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["video-sources"] });
+      qc.invalidateQueries({ queryKey: ["video-items", id] });
+    },
+  });
+}
+
 export function useAddVideoLinks(id: string) {
   const qc = useQueryClient();
   return useMutation({

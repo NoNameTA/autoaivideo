@@ -2,9 +2,28 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
+from app.core.errors import ValidationAppError
+from app.services.video_source_service import _parse_sheet
 from tests.conftest import OWNER_HEADERS
+
+
+def test_parse_sheet_extracts_url_column() -> None:
+    values = [
+        ["Title", "VideoURL", "Note"],
+        ["Phim A", "https://example.com/a.mp4", "x"],
+        ["Phim B", "xem ở https://example.com/b.mp4 nhé", "y"],
+        ["", "https://example.com/a.mp4", "trùng"],  # dedup
+        ["Phim C", "không có link", "z"],  # bỏ
+    ]
+    rows = _parse_sheet(values, "VideoURL", "Title")
+    assert [u for u, _ in rows] == ["https://example.com/a.mp4", "https://example.com/b.mp4"]
+    assert rows[0][1] == "Phim A"
+    # Sai tên cột -> lỗi rõ ràng.
+    with pytest.raises(ValidationAppError):
+        _parse_sheet(values, "KhongCo", None)
 
 
 def _create(client: TestClient, name: str = "Src A") -> str:
@@ -83,6 +102,21 @@ def test_run_creates_one_job_per_link(client: TestClient) -> None:
     # Source -> running.
     src = client.get(f"/api/v1/video-sources/{sid}", headers=OWNER_HEADERS).json()
     assert src["status"] == "running"
+
+
+def test_google_sheets_source_requires_connection(client: TestClient) -> None:
+    # Nguồn google_sheets thiếu connection_id -> read/import báo lỗi rõ (không mock).
+    r = client.post(
+        "/api/v1/video-sources",
+        json={"name": "GS", "source_type": "google_sheets", "config": {"url_column": "VideoURL"}},
+        headers=OWNER_HEADERS,
+    )
+    assert r.status_code == 201
+    sid = r.json()["id"]
+    rr = client.post(f"/api/v1/video-sources/{sid}/read-sheet", headers=OWNER_HEADERS)
+    assert rr.status_code == 422
+    ri = client.post(f"/api/v1/video-sources/{sid}/import-sheet", headers=OWNER_HEADERS)
+    assert ri.status_code == 422
 
 
 def test_delete_source(client: TestClient) -> None:

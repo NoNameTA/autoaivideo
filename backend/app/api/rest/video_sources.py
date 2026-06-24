@@ -7,9 +7,11 @@ from app.schemas.video_source import (
     AddLinks,
     RunRequest,
     RunResult,
+    SheetPreviewRow,
     VideoSourceCreate,
     VideoSourceItemOut,
     VideoSourceOut,
+    VideoSourceUpdate,
 )
 from app.services.video_source_service import VideoSourceService
 
@@ -35,6 +37,15 @@ async def get_source(source_id: str, session: SessionDep) -> VideoSourceOut:
     return await VideoSourceService.get(session, source_id)  # type: ignore[return-value]
 
 
+@router.patch("/{source_id}", response_model=VideoSourceOut)
+async def update_source(
+    source_id: str, data: VideoSourceUpdate, session: SessionDep
+) -> VideoSourceOut:
+    return await VideoSourceService.update(  # type: ignore[return-value]
+        session, source_id, data.name, data.config
+    )
+
+
 @router.delete("/{source_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_source(source_id: str, session: SessionDep):
     await VideoSourceService.delete(session, source_id)
@@ -53,6 +64,17 @@ async def add_links(source_id: str, data: AddLinks, session: SessionDep) -> Vide
 @router.delete("/{source_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(source_id: str, item_id: str, session: SessionDep):
     await VideoSourceService.delete_item(session, source_id, item_id)
+
+
+@router.post("/{source_id}/read-sheet", response_model=list[SheetPreviewRow])
+async def read_sheet(source_id: str, session: SessionDep) -> list[SheetPreviewRow]:
+    """Google Sheets mode — Backend đọc Sheet trả PREVIEW (Agent KHÔNG tham gia)."""
+    return await VideoSourceService.preview_sheet(session, source_id)  # type: ignore[return-value]
+
+
+@router.post("/{source_id}/import-sheet", response_model=VideoSourceOut)
+async def import_sheet(source_id: str, session: SessionDep) -> VideoSourceOut:
+    return await VideoSourceService.import_from_sheet(session, source_id)  # type: ignore[return-value]
 
 
 @router.post("/{source_id}/run", response_model=RunResult)

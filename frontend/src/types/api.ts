@@ -220,6 +220,13 @@ export interface RunResult {
   job_count: number;
 }
 
+export interface SheetPreviewRow {
+  seq: number;
+  url: string;
+  title: string | null;
+  status: string;
+}
+
 // External Apps — adapter bọc app ngoài (SPEC 06).
 export type ConnectionState = "connected" | "no_agent" | "disabled";
 
