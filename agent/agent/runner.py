@@ -14,6 +14,7 @@ async def run_step(
     settings: AgentSettings,
     data: dict,
     credential_resolver: Callable[[dict], Awaitable[dict]] | None = None,
+    on_progress: Callable[[int, str], None] | None = None,
 ) -> list[dict]:
     capability = data.get("adapter") or data.get("capability")
     adapter = get_adapters(settings.plugins_dir or None).get(capability)
@@ -34,6 +35,7 @@ async def run_step(
         timeout=settings.step_timeout,
         trace_id=data.get("trace_id"),
         capability=capability,
+        on_progress=on_progress,
         credential_resolver=credential_resolver,
     )
 

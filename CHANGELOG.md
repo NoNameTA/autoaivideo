@@ -4,6 +4,26 @@
 
 ## [Unreleased]
 
+### Pha 2B — Download Progress% realtime (yt-dlp) (2026-06-24)
+> Hiển thị tiến độ tải realtime trong Queue (Progress Bar/Speed/ETA/Dung lượng). **Chỉ sửa plugin
+> yt-dlp** + **nối tối thiểu `on_progress`** (owner duyệt phương án A — additive, hoàn thiện scaffolding
+> `StepContext.on_progress` đã thiết kế sẵn; KHÔNG refactor/đổi kiến trúc Agent).
+
+#### Added/Changed
+- **Plugin** `plugins/yt_dlp/adapter.py`: stream subprocess + parse `--progress-template`
+  (`_percent_str`/`_speed_str`/`_eta_str`/bytes) → `ctx.progress(pct, "speed · ETA · dl/total")`.
+- **Agent (additive):** `runner.py`+`connection.py` nối `on_progress` → gửi `step.progress` (an toàn
+  thread). **Backend:** `engine.on_progress` cập nhật `job.progress` + broadcast global `job.progress`
+  (Queue cập nhật không cần subscribe batch); `ws/agent` truyền `msg`.
+- **Frontend:** `ui` store `jobProgress` (cập nhật từ WS); Queue thêm **ProgressCell** (bar + %, dòng
+  speed/ETA/bytes); `useWebSocket` xử lý `job.progress`.
+
+#### Verified (thật, không mock)
+- Backend ruff ✅ · pytest ✅ **54 passed** · Agent ruff/pytest ✅ **15** · Frontend lint+build ✅.
+- **Browser + download THẬT** (throttle `--limit-rate` để thấy rõ): Queue hiển thị **bar 11%→20%
+  realtime, Speed 249.96KiB/s, ETA 01:45→01:35, 3.4MB→5.9MB/29.3MB** — chuỗi plugin→on_progress→
+  step.progress→engine→broadcast→UI hoạt động đầy đủ.
+
 ### Video Sources — Pha 2: Google Sheets (read/preview/import) — Ready for Integration Test (2026-06-24)
 > Mở rộng Video Sources (KHÔNG tách module/trang mới): thêm `source_type=google_sheets`. **Google Sheets
 > chỉ là NGUỒN link** (đọc), không lưu/render video. **Preview = phương án B**: Website→Backend→Adapter

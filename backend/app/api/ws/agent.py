@@ -128,7 +128,7 @@ async def ws_agent(websocket: WebSocket, token: str | None = Query(default=None)
             elif mtype == "step.ack":
                 await engine.on_ack(data["step_id"])
             elif mtype == "step.progress":
-                await engine.on_progress(data.get("step_id"), data.get("pct"))
+                await engine.on_progress(data.get("step_id"), data.get("pct"), data.get("msg"))
             elif mtype == "step.completed":
                 await engine.on_completed(data["step_id"], data.get("assets", []))
             elif mtype == "step.failed":

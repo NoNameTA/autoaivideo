@@ -55,6 +55,15 @@ export function useWebSocketConnection(): void {
     const client = new WsClient(() => wsUrl(token), setWsConnected);
     activeClient = client;
     const off = client.on((msg) => {
+      // Tiến độ download realtime -> cập nhật store (speed/ETA cho ProgressCell).
+      if (msg.type === "job.progress") {
+        const d = (msg.data ?? {}) as Record<string, unknown>;
+        useUiStore.getState().setJobProgress(String(d.job_id), {
+          pct: Number(d.progress) || 0,
+          msg: String(d.msg ?? ""),
+        });
+        // KHÔNG return: để nhánh dưới invalidate jobs-all -> job hiện trong Queue + % cập nhật.
+      }
       // Realtime -> làm mới cache liên quan (SPEC 09 §3).
       if (msg.type === "agent.updated") {
         queryClient.invalidateQueries({ queryKey: qk.agents });

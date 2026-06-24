@@ -64,12 +64,21 @@ async def _coalesce_loop(ws, queue: asyncio.Queue, debounce_ms: int) -> None:
 async def _exec_step(ws, settings: AgentSettings, data: dict, cred_rpc: CredentialRpc) -> None:
     step_id = data["step_id"]
     await _send(ws, "step.ack", {"step_id": step_id})
+    loop = asyncio.get_running_loop()
 
     async def resolver(payload: dict) -> dict:
         return await cred_rpc.request(lambda t, d: _send(ws, t, d), payload)
 
+    def on_progress(pct: int, msg: str) -> None:
+        # Adapter (plugin) gọi đồng bộ -> đẩy step.progress về backend an toàn từ mọi thread.
+        loop.call_soon_threadsafe(
+            lambda: asyncio.ensure_future(
+                _send(ws, "step.progress", {"step_id": step_id, "pct": pct, "msg": msg})
+            )
+        )
+
     try:
-        assets = await run_step(settings, data, resolver)
+        assets = await run_step(settings, data, resolver, on_progress)
         await _send(ws, "step.completed", {"step_id": step_id, "assets": assets})
         log.info("step %s hoàn tất (%d asset)", step_id, len(assets))
     except TransientError as e:

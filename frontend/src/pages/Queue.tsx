@@ -18,6 +18,7 @@ export function Queue() {
   const retry = useRetryJob();
   const cancel = useCancelJob();
   const push = useUiStore((s) => s.pushToast);
+  const jobProgress = useUiStore((s) => s.jobProgress);
 
   // Debounce ô tìm kiếm.
   useEffect(() => {
@@ -103,7 +104,12 @@ export function Queue() {
                   </td>
                   <td className="py-1.5 pr-3 text-xs text-muted">{j.pipeline}</td>
                   <td className="py-1.5 pr-3"><StatusBadge status={j.status} /></td>
-                  <td className="py-1.5 pr-3 text-muted">{j.progress}%</td>
+                  <td className="py-1.5 pr-3">
+                    <ProgressCell
+                      pct={jobProgress[j.id]?.pct ?? j.progress}
+                      msg={j.status === "running" ? jobProgress[j.id]?.msg : undefined}
+                    />
+                  </td>
                   <td className="py-1.5 pr-3 text-xs text-muted">{fmtDate(j.updated_at)}</td>
                   <td className="py-1.5 pr-3">
                     <div className="flex gap-2 text-xs">
@@ -140,5 +146,19 @@ export function Queue() {
         </div>
       )}
     </SectionPanel>
+  );
+}
+
+function ProgressCell({ pct, msg }: { pct: number; msg?: string }) {
+  return (
+    <div className="w-32">
+      <div className="flex items-center gap-1">
+        <div className="h-1.5 flex-1 overflow-hidden rounded bg-border">
+          <div className="h-full rounded bg-primary transition-all" style={{ width: `${pct}%` }} />
+        </div>
+        <span className="w-9 shrink-0 text-right text-xs text-muted">{pct}%</span>
+      </div>
+      {msg && <div className="mt-0.5 truncate text-[10px] text-muted" title={msg}>{msg}</div>}
+    </div>
   );
 }

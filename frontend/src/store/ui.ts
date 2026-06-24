@@ -20,21 +20,32 @@ export interface Activity {
 
 const ACTIVITY_LIMIT = 100;
 
+export interface JobProgress {
+  pct: number;
+  msg: string;
+}
+
 interface UiState {
   wsConnected: boolean;
   toasts: Toast[];
   activities: Activity[];
+  // Tiến độ download realtime theo job_id (cập nhật từ WS, không refetch).
+  jobProgress: Record<string, JobProgress>;
   setWsConnected: (v: boolean) => void;
   pushToast: (kind: ToastKind, message: string) => void;
   dismissToast: (id: string) => void;
   pushActivity: (a: Omit<Activity, "id" | "ts">) => void;
+  setJobProgress: (jobId: string, p: JobProgress) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
   wsConnected: false,
   toasts: [],
   activities: [],
+  jobProgress: {},
   setWsConnected: (wsConnected) => set({ wsConnected }),
+  setJobProgress: (jobId, p) =>
+    set((s) => ({ jobProgress: { ...s.jobProgress, [jobId]: p } })),
   pushToast: (kind, message) =>
     set((s) => ({
       toasts: [...s.toasts, { id: crypto.randomUUID(), kind, message }],

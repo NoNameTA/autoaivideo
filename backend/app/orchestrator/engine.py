@@ -178,18 +178,33 @@ class OrchestratorEngine:
                     capability=step.adapter,
                 )
 
-    async def on_progress(self, step_id: str, pct: int | None) -> None:
+    async def on_progress(
+        self, step_id: str, pct: int | None, msg: str | None = None
+    ) -> None:
         async with SessionLocal() as session:
             step = await session.get(Step, step_id)
             if step is None:
                 return
             job = await session.get(Job, step.job_id)
-            if job:
+            if job and pct is not None:
+                # Cập nhật % của job đang chạy để Queue (jobs-all) hiển thị realtime.
+                job.progress = pct
+                await session.commit()
                 await manager.broadcast(
                     "step.updated",
-                    {"job_id": job.id, "step_id": step_id, "status": step.status, "progress": pct},
+                    {
+                        "job_id": job.id,
+                        "step_id": step_id,
+                        "status": step.status,
+                        "progress": pct,
+                        "msg": msg,
+                    },
                     scope="batch",
                     id_=job.batch_id,
+                )
+                # Phát global để Queue/Dashboard refetch + hiện progress/speed/ETA.
+                await manager.broadcast(
+                    "job.progress", {"job_id": job.id, "progress": pct, "msg": msg}
                 )
             if is_plugin_capability(step.adapter):
                 await self._activity(
