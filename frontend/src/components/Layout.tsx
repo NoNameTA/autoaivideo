@@ -6,61 +6,53 @@ import { useSettingsStore } from "../store/settings";
 import { useUiStore } from "../store/ui";
 
 // CHỈ UI điều hướng — KHÔNG đổi route/label/chức năng. Route giữ nguyên 100%.
+// Toàn bộ Navigation nằm TRONG menu Hamburger (☰); Sidebar/Top bar chỉ còn Logo + ☰.
 interface NavEntry {
   to: string;
   label: string;
   end?: boolean;
 }
 
-// Mục đơn lẻ (1 chức năng) -> hiển thị trực tiếp.
-const SINGLES: NavEntry[] = [
-  { to: "/", label: "Dashboard", end: true },
-  { to: "/projects", label: "Projects" },
-  { to: "/video-sources", label: "Video Sources" },
-];
-const SINGLES_AFTER: NavEntry[] = [
-  { to: "/files", label: "File Manager" },
-];
-const SETTINGS: NavEntry = { to: "/settings", label: "Settings" };
-
-// Nhóm CÓ ≥2 chức năng -> menu con thu gọn/mở rộng.
+// Toàn bộ chức năng gom thành nhóm thu gọn (collapsible). KHÔNG bỏ sót mục nào.
+// Mọi route hiện có đều có mặt: Dashboard, Projects, Video Sources, Workflow, Queue,
+// Logs, Statistics, Desktop Agent, Plugin Manager, File Manager, External Applications, Settings.
 const GROUPS: { label: string; items: NavEntry[] }[] = [
+  { label: "Dashboard", items: [
+    { to: "/", label: "Dashboard", end: true },
+  ] },
+  { label: "Projects", items: [
+    { to: "/projects", label: "Projects" },
+  ] },
   { label: "Workflow", items: [
     { to: "/workflow", label: "Workflow" },
     { to: "/queue", label: "Queue" },
   ] },
-  { label: "Agent", items: [
-    { to: "/agent", label: "Desktop Agent" },
-    { to: "/plugins", label: "Plugin Manager" },
+  { label: "Video", items: [
+    { to: "/video-sources", label: "Video Sources" },
   ] },
   { label: "Monitoring", items: [
     { to: "/logs", label: "Logs" },
     { to: "/stats", label: "Statistics" },
   ] },
+  { label: "Agent", items: [
+    { to: "/agent", label: "Desktop Agent" },
+    { to: "/plugins", label: "Plugin Manager" },
+  ] },
+  { label: "Files", items: [
+    { to: "/files", label: "File Manager" },
+  ] },
+  { label: "Integration", items: [
+    { to: "/external", label: "External Applications" },
+  ] },
+  { label: "Settings", items: [
+    { to: "/settings", label: "Settings" },
+  ] },
 ];
-
-// Ngoại lệ: External Applications -> chỉ nằm trong menu Hamburger (☰), không trên Sidebar.
-const HAMBURGER: NavEntry[] = [
-  { to: "/external", label: "External Applications" },
-];
-
-const LINK_CLASS = ({ isActive }: { isActive: boolean }) =>
-  `block rounded px-3 py-2 text-sm transition-colors ${
-    isActive ? "bg-primary text-white" : "text-muted hover:bg-border hover:text-text"
-  }`;
 
 const SUBLINK_CLASS = ({ isActive }: { isActive: boolean }) =>
   `block rounded px-3 py-1.5 text-sm transition-colors ${
     isActive ? "bg-primary text-white" : "text-muted hover:bg-border hover:text-text"
   }`;
-
-function Item({ entry, onNavigate }: { entry: NavEntry; onNavigate?: () => void }) {
-  return (
-    <NavLink to={entry.to} end={entry.end} className={LINK_CLASS} onClick={onNavigate}>
-      {entry.label}
-    </NavLink>
-  );
-}
 
 function Group({
   label,
@@ -88,7 +80,13 @@ function Group({
       {open && (
         <div className="ml-3 flex flex-col gap-0.5 border-l border-border pl-2">
           {items.map((it) => (
-            <NavLink key={it.to} to={it.to} className={SUBLINK_CLASS} onClick={onNavigate}>
+            <NavLink
+              key={it.to}
+              to={it.to}
+              end={it.end}
+              className={SUBLINK_CLASS}
+              onClick={onNavigate}
+            >
               {it.label}
             </NavLink>
           ))}
@@ -98,23 +96,18 @@ function Group({
   );
 }
 
-/** Cây điều hướng (mục đơn lẻ + nhóm). `includeExternal` để dùng trong Drawer (mobile/☰). */
+/** Cây điều hướng đầy đủ — chỉ render bên trong Drawer (☰). */
 function NavTree({
   openGroups,
   toggleGroup,
-  includeExternal,
   onNavigate,
 }: {
   openGroups: Record<string, boolean>;
   toggleGroup: (label: string) => void;
-  includeExternal?: boolean;
   onNavigate?: () => void;
 }) {
   return (
     <nav className="flex flex-col gap-1">
-      {SINGLES.map((e) => (
-        <Item key={e.to} entry={e} onNavigate={onNavigate} />
-      ))}
       {GROUPS.map((g) => (
         <Group
           key={g.label}
@@ -125,12 +118,6 @@ function NavTree({
           onNavigate={onNavigate}
         />
       ))}
-      {SINGLES_AFTER.map((e) => (
-        <Item key={e.to} entry={e} onNavigate={onNavigate} />
-      ))}
-      <Item entry={SETTINGS} onNavigate={onNavigate} />
-      {includeExternal &&
-        HAMBURGER.map((e) => <Item key={e.to} entry={e} onNavigate={onNavigate} />)}
     </nav>
   );
 }
@@ -170,6 +157,16 @@ export function Layout() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Đóng Drawer bằng phím Esc.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
+
   const wsStatus = (
     <div className="px-3 text-xs">
       <span className={wsConnected ? "text-success" : "text-muted"}>
@@ -182,34 +179,28 @@ export function Layout() {
     <button
       onClick={() => setDrawerOpen(true)}
       aria-label="Mở menu"
-      className="rounded p-1.5 text-text hover:bg-border"
+      aria-expanded={drawerOpen}
+      className="rounded p-1.5 text-lg leading-none text-text hover:bg-border"
     >
       ☰
     </button>
   );
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar cố định (desktop) */}
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface p-4 md:flex">
-        <div className="mb-6 flex items-center justify-between px-2">
-          <div>
-            <div className="text-lg font-bold text-text">AI Video</div>
-            <div className="text-xs text-muted">Platform V2</div>
-          </div>
+    <div className="flex min-h-screen flex-col">
+      {/* Thanh trên cùng (mọi kích thước màn hình): CHỈ ☰ + Logo. Không mục chức năng nào. */}
+      <header className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-border bg-surface px-4 py-2">
+        <div className="flex items-center gap-3">
           {hamburgerBtn}
+          <div className="flex items-baseline gap-2">
+            <span className="text-base font-bold text-text">AI Video</span>
+            <span className="hidden text-xs text-muted sm:inline">Platform V2</span>
+          </div>
         </div>
-        <NavTree openGroups={openGroups} toggleGroup={toggleGroup} />
-        <div className="mt-6">{wsStatus}</div>
-      </aside>
+        <div className="hidden sm:block">{wsStatus}</div>
+      </header>
 
-      {/* Thanh trên cùng (mobile) với ☰ */}
-      <div className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-border bg-surface px-4 py-2 md:hidden">
-        <div className="text-sm font-bold text-text">AI Video Platform V2</div>
-        {hamburgerBtn}
-      </div>
-
-      {/* Drawer (☰): mobile = toàn bộ nav + External; desktop = External Applications */}
+      {/* Drawer (☰): chứa TOÀN BỘ Navigation. Đóng ☰ -> nav biến mất hoàn toàn. */}
       {drawerOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50"
@@ -218,9 +209,14 @@ export function Layout() {
           <div
             className="flex h-full w-72 max-w-[80%] flex-col border-r border-border bg-surface p-4"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Menu điều hướng"
           >
             <div className="mb-4 flex items-center justify-between px-2">
-              <div className="text-lg font-bold text-text">AI Video</div>
+              <div>
+                <div className="text-lg font-bold text-text">AI Video</div>
+                <div className="text-xs text-muted">Platform V2</div>
+              </div>
               <button
                 onClick={() => setDrawerOpen(false)}
                 aria-label="Đóng menu"
@@ -229,28 +225,20 @@ export function Layout() {
                 ✕
               </button>
             </div>
-            {/* Mobile: hiện toàn bộ nav (sidebar ẩn). Desktop: ẩn (đã có sidebar). */}
-            <div className="md:hidden">
+            <div className="-mr-2 flex-1 overflow-y-auto pr-2">
               <NavTree
                 openGroups={openGroups}
                 toggleGroup={toggleGroup}
                 onNavigate={() => setDrawerOpen(false)}
               />
-              <div className="my-2 border-t border-border" />
             </div>
-            {/* External Applications luôn nằm trong ☰ */}
-            <div className="text-xs uppercase tracking-wide text-muted">Khác</div>
-            <nav className="mt-1 flex flex-col gap-1">
-              {HAMBURGER.map((e) => (
-                <Item key={e.to} entry={e} onNavigate={() => setDrawerOpen(false)} />
-              ))}
-            </nav>
-            <div className="mt-auto md:hidden">{wsStatus}</div>
+            <div className="mt-4 border-t border-border pt-3">{wsStatus}</div>
           </div>
         </div>
       )}
 
-      <main className="flex-1 overflow-auto p-6 pt-16 md:pt-6">
+      {/* Nội dung trang — toàn chiều rộng, chừa chỗ cho thanh trên cùng. */}
+      <main className="flex-1 overflow-auto p-6 pt-16">
         {!token && (
           <div className="mb-4 rounded border-l-4 border-warning bg-surface px-4 py-2 text-sm text-text">
             Chưa cấu hình token. Vào <span className="font-semibold">Settings</span> để nhập token

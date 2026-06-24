@@ -4,6 +4,34 @@
 
 ## [Unreleased]
 
+### UI — Navigation: ẨN TOÀN BỘ menu vào Hamburger (☰) (2026-06-24)
+> **100% thuần UI điều hướng** (chỉ `components/Layout.tsx`). KHÔNG đổi route/label/chức năng/nội
+> dung/API/Backend/DB/Agent/Theme/Logic. Không thêm/bớt tính năng. Mọi route giữ nguyên 100%.
+
+#### Changed (chỉ Layout.tsx)
+- **Sidebar cố định đã gỡ bỏ.** Thay bằng **thanh trên cùng (mọi kích thước màn hình)** chỉ chứa
+  **Logo + ☰ (Hamburger)** — KHÔNG còn bất kỳ mục chức năng nào hiển thị trực tiếp. Tăng tối đa
+  không gian làm việc (nội dung trải toàn chiều rộng), không phải cuộn Sidebar.
+- **Toàn bộ Navigation nằm TRONG Drawer mở bằng ☰** (cả desktop lẫn mobile). Đóng ☰ → nav biến mất
+  hoàn toàn; mở ☰ → nav hiện đầy đủ.
+- **Gom nhóm thu gọn (collapsible) tất cả 9 nhóm:** **Dashboard** (Dashboard) · **Projects**
+  (Projects) · **Workflow** (Workflow, Queue) · **Video** (Video Sources) · **Monitoring** (Logs,
+  Statistics) · **Agent** (Desktop Agent, Plugin Manager) · **Files** (File Manager) · **Integration**
+  (External Applications) · **Settings** (Settings). Giữ đủ **12 mục/route** — không bỏ sót Projects
+  và File Manager. Connector tương lai (Google Drive/Dropbox/OneDrive/OBS/Notion…) thuộc nhóm
+  **Integration**.
+- **Responsive** (Desktop/Laptop/Tablet/Mobile) bằng cùng một giao diện — không tạo layout riêng.
+  Drawer cuộn được khi nội dung dài.
+- **Ghi nhớ trạng thái mở/đóng nhóm trong phiên** (`sessionStorage`, key `nav-open-groups`).
+- Đóng Drawer bằng **nút ✕**, **click nền tối (backdrop)**, **chọn 1 mục** (auto-close), hoặc phím **Esc**.
+
+#### Verified (browser thật)
+- Frontend lint ✅ · build ✅ (tsc + vite). **Browser (desktop 1280 + mobile 375)**: trạng thái đóng chỉ
+  hiện **Logo + ☰** (0 link nav lộ ra ngoài); mở ☰ hiện **đủ 9 nhóm / 12 link**; điều hướng OK
+  (`/external` + auto-close); thu gọn/mở rộng nhóm + nhớ `sessionStorage` OK; **đủ 12 route, không thiếu
+  không thừa**; theme không đổi; **không lỗi console** (chỉ cảnh báo RR future-flag có sẵn). Backend/API/
+  DB/Agent/Workflow/Queue/Plugin/Logic **không đụng tới**.
+
 ### UI — Cải tiến Navigation (gom nhóm + Hamburger) (2026-06-24)
 > **100% thuần UI điều hướng** (chỉ `components/Layout.tsx`). KHÔNG đổi route/label/chức năng/nội
 > dung/API/Backend/DB/Agent/Theme/Logic. Không thêm/bớt tính năng.
