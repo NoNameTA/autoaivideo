@@ -4,6 +4,33 @@
 
 ## [Unreleased]
 
+### Video Sources — Pha 2B: Google Sheets LIVE — ✅ ĐÃ TEST THẬT (không mock) (2026-06-24)
+> Chạy **integration test LIVE** với Google Sheets THẬT (credential Service Account của owner +
+> spreadsheet thật). Toàn bộ luồng end-to-end đã chứng minh: **Test Connection → Read → Preview →
+> Import → Run → download thật** qua đúng kiến trúc cũ (Backend đọc Sheet — phương án B; Agent tải
+> bằng yt-dlp — Pha 1). KHÔNG đổi Backend/DB/Agent-core/Workflow/Queue/engine/Theme — chỉ **sửa 1
+> mặc định FE + tài liệu** (bug đường dẫn credential, dưới đây).
+
+#### Verified (LIVE, dữ liệu thật)
+- **Sheet:** "Data link video Affiliate NV" · worksheet `Trang tính1` · cột link `Link video gốc`
+  (cột tên `Tên sản phẩm`). Test Connection (REST + nút UI) → `connected` ("Kết nối OK: …").
+- **Read/Preview:** đọc thật **4769** URL video duy nhất (TikTok ~3792, Facebook ~976). **Import:**
+  tạo 4769 item (status `imported`).
+- **Run + download THẬT (10 video đầu — theo yêu cầu owner):** **10/10 job `completed` (100%)**,
+  agent tải **195.75 MB** file video thật (Facebook Reel + TikTok), tên file = tiêu đề video thật;
+  item suy `done`. Browser verify: trang Video Sources (panel Google Sheets prefill đúng config,
+  filter `done` hiện đúng 10 item kèm Link + Job), External Applications (credential `active`,
+  connection `connected`), nút **Test Connection** trả toast OK. Không lỗi console.
+
+#### Fixed — đường dẫn credential mặc định (local_file) lệch `secrets_dir`
+- `secret_path` được giải mã **tương đối `secrets_dir`** (mặc định `backend/.secrets`). Mặc định cũ
+  `.secrets/gsa.json` bị **lồng đôi** → `backend/.secrets/.secrets/gsa.json` (không tồn tại) khiến
+  tạo credential qua UI báo "Không tìm thấy file bí mật".
+- **Sửa:** mặc định FE `components/CloudConnections.tsx` → `gsa.json` (chỉ tên file trong
+  `secrets_dir`) + placeholder rõ nghĩa. Cập nhật `SETUP_GOOGLE_SHEETS.md` (vị trí file
+  `backend/.secrets/gsa.json` + ô đường dẫn nhập `gsa.json`, không thêm tiền tố `.secrets/`).
+  KHÔNG đổi logic provider/secret-store.
+
 ### UI — Navigation: ẨN TOÀN BỘ menu vào Hamburger (☰) (2026-06-24)
 > **100% thuần UI điều hướng** (chỉ `components/Layout.tsx`). KHÔNG đổi route/label/chức năng/nội
 > dung/API/Backend/DB/Agent/Theme/Logic. Không thêm/bớt tính năng. Mọi route giữ nguyên 100%.

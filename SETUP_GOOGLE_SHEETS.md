@@ -20,9 +20,10 @@
 3. Lấy **Spreadsheet ID** từ URL: `https://docs.google.com/spreadsheets/d/<SPREADSHEET_ID>/edit`.
 
 ## 4. Đặt file credential
-- Đổi tên JSON tải về thành **`gsa.json`**, đặt vào:
+- Đổi tên JSON tải về thành **`gsa.json`**, đặt vào **secrets_dir của backend** (mặc định
+  `backend/.secrets`, theo `secrets_dir=./.secrets` trong `app/core/config.py`):
   ```
-  C:\AIVideoPlatform\.secrets\gsa.json
+  C:\AIVideoPlatform\backend\.secrets\gsa.json
   ```
 - Thư mục `.secrets/` đã **gitignored** (không commit). KHÔNG đưa file này lên git.
 - (Tuỳ chọn prod) đặt `MASTER_KEY` (Fernet key) trong env backend → hệ thống tự dùng **Credential
@@ -39,7 +40,8 @@ pip install cryptography                                  # nếu chạy backend
 ## 6. Nhập trong giao diện (trang External Applications → mục "Cloud Connections")
 1. **Credentials → Thêm credential:**
    - Tên: tuỳ ý (vd "Google chính").
-   - Đường dẫn file bí mật: `.secrets/gsa.json` (mặc định, sửa được).
+   - Tên file bí mật **(tương đối secrets_dir)**: `gsa.json` (mặc định, sửa được). KHÔNG thêm tiền
+     tố `.secrets/` — đường dẫn được giải mã tương đối `backend/.secrets`.
    - → Thêm (authentication_type = `service_account`).
 2. **Connections → Thêm connection:**
    - Tên hiển thị: tuỳ ý.

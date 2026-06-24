@@ -43,7 +43,9 @@ export function CloudConnections() {
 
   // Form Credential (giá trị mặc định cấu hình được — KHÔNG hard-code trong adapter).
   const [cName, setCName] = useState("Google chính");
-  const [cPath, setCPath] = useState(".secrets/gsa.json");
+  // Đường dẫn TƯƠNG ĐỐI so với secrets_dir của backend (mặc định `backend/.secrets`).
+  // Chỉ cần tên file đặt trong thư mục đó, vd `gsa.json` (KHÔNG thêm tiền tố `.secrets/`).
+  const [cPath, setCPath] = useState("gsa.json");
 
   // Form Connection.
   const [dName, setDName] = useState("Sheet của tôi");
@@ -99,7 +101,7 @@ export function CloudConnections() {
           <input className={INPUT} value={cName} onChange={(e) => setCName(e.target.value)}
             placeholder="Tên credential" />
           <input className={INPUT} value={cPath} onChange={(e) => setCPath(e.target.value)}
-            placeholder="Đường dẫn file bí mật (gitignored)" />
+            placeholder="Tên file bí mật trong secrets_dir, vd gsa.json" />
           <button
             onClick={addCredential}
             disabled={createCred.isPending}
