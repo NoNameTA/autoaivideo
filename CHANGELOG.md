@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+### UI — Cải tiến Navigation (gom nhóm + Hamburger) (2026-06-24)
+> **100% thuần UI điều hướng** (chỉ `components/Layout.tsx`). KHÔNG đổi route/label/chức năng/nội
+> dung/API/Backend/DB/Agent/Theme/Logic. Không thêm/bớt tính năng.
+
+#### Changed (chỉ Layout.tsx)
+- **Gom nhóm thu gọn (collapsible) cho nhóm có ≥2 mục:** **Workflow** (Workflow, Queue) · **Agent**
+  (Desktop Agent, Plugin Manager) · **Monitoring** (Logs, Statistics). Mục đơn lẻ giữ hiển thị trực
+  tiếp: Dashboard, Projects, Video Sources, File Manager, Settings.
+- **External Applications** đưa vào **menu Hamburger (☰)** — KHÔNG còn trên Sidebar (route `/external`
+  giữ nguyên). ☰ desktop = mở overflow chỉ External Applications; ☰ mobile = mở drawer toàn bộ nav.
+- **Responsive:** sidebar cố định ở desktop; <768px ẩn sidebar + thanh trên cùng có ☰ mở drawer.
+- Nhóm nhớ trạng thái mở/đóng trong phiên (`sessionStorage`).
+
+#### Verified
+- Frontend lint ✅ · build ✅. Browser (desktop 1280 + mobile): sidebar gom nhóm đúng, External chỉ
+  trong ☰, thu gọn/mở rộng nhóm OK, **mọi route giữ nguyên + điều hướng được** (External→`/external`),
+  theme không đổi, không lỗi console (đã chụp). Backend/API/DB/Agent **không đụng tới**.
+
 ### Pha 2B — Download Progress% realtime (yt-dlp) (2026-06-24)
 > Hiển thị tiến độ tải realtime trong Queue (Progress Bar/Speed/ETA/Dung lượng). **Chỉ sửa plugin
 > yt-dlp** + **nối tối thiểu `on_progress`** (owner duyệt phương án A — additive, hoàn thiện scaffolding
