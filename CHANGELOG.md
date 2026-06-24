@@ -4,6 +4,29 @@
 
 ## [Unreleased]
 
+### Tích hợp "mở ra là dùng" — Auto-Sync, tự tạo Connection, web phục vụ từ backend (2026-06-24)
+> Giảm tối đa thao tác cài đặt: web tự phát hiện sản phẩm mới, tự tạo Connection, 1 địa chỉ duy nhất.
+> 100% additive. Trả lời: video đã tải KHÔNG bị tải lại (dedup); sản phẩm mới được TỰ phát hiện.
+
+#### Added
+- **Auto-Sync** (`services/auto_sync.py` + lifespan): vòng lặp nền quét nguồn `google_sheets` bật
+  `auto_sync` mỗi `auto_sync_interval` giây → import row MỚI (dedup bỏ video cũ → KHÔNG tải lại);
+  `auto_run` (tuỳ chọn) tự tải video mới (giới hạn lô). Log `GoogleSheets.AutoSync`. FE: toggle
+  "Tự đồng bộ" + interval (5/10/30 phút/1 giờ) + "Tự tải luôn" + nút Lưu cấu hình.
+- **Tự tạo Connection từ URL**: dán nguyên link Sheet (hoặc ID) — backend tách ID + **tự tạo
+  Connection** từ credential Google (`_ensure_connection`). **Auto-seed credential** từ `gsa.json`
+  lúc khởi động → người dùng KHỎI vào External Applications.
+- **Phục vụ web NGAY TỪ backend** (`_mount_frontend`): mount `frontend/dist` + SPA fallback →
+  **http://localhost:8000 là cả web lẫn API** (same-origin → hết lỗi CORS / API Base).
+- **CORS**: cho phép mọi origin `localhost`/`127.0.0.1` (mọi cổng) khi chạy local.
+
+#### Verified (LIVE)
+- Auto-Sync: bật trên 1 nguồn → tự import 4 (item_count 0→4, không bấm tay); thêm 1 sản phẩm vào
+  Sheet → tự phát hiện (4→5, log `imported=1 duplicates=4`); video cũ không lấy lại.
+- Auto-Connection: tạo nguồn dán nguyên URL, KHÔNG có connection_id → Read tự tạo Connection + đọc
+  4 dòng (HTTP 200). Web phục vụ từ backend: `GET /` + `/video-sources` trả app, assets 200.
+- Backend ruff ✅ pytest 60/1skip; FE lint+build ✅.
+
 ### v1.0 Completion — Write-back, Dedup, Filter/Batch, Auto-Refresh, Logs, Stats (2026-06-24)
 > Hoàn thiện các hạng mục còn thiếu để đạt **v1.0**. **100% additive** trên kiến trúc cũ — KHÔNG
 > refactor engine/queue/pipeline/route/theme/agent-core/DB hiện có. Không mock; tất cả test thật.

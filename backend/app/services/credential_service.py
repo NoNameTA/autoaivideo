@@ -64,6 +64,37 @@ class CredentialService:
         await session.delete(cred)
         await session.commit()
 
+    _SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
+    _DEFAULT_SECRET = "gsa.json"
+
+    @staticmethod
+    async def ensure_default_google(session: AsyncSession) -> Credential | None:
+        """Trả credential google_sheets; tự tạo từ `gsa.json` (secrets_dir) nếu chưa có.
+
+        Giúp người dùng KHỎI phải tự tạo credential — chỉ cần đặt file gsa.json. Không có file
+        -> trả None (caller báo lỗi rõ).
+        """
+        existing = (
+            await session.execute(
+                select(Credential).where(Credential.provider == "google_sheets")
+            )
+        ).scalars().first()
+        if existing is not None:
+            return existing
+        try:
+            return await CredentialService.create(
+                session,
+                CredentialCreate(
+                    provider="google_sheets",
+                    connection_name="Google (tự tạo)",
+                    authentication_type="service_account",
+                    scopes=[CredentialService._SHEETS_SCOPE],
+                    secret_path=CredentialService._DEFAULT_SECRET,
+                ),
+            )
+        except ValidationAppError:
+            return None  # chưa đặt gsa.json
+
     # ----- nội bộ (KHÔNG phơi qua API) -----
     @staticmethod
     def resolve_material(cred: Credential) -> str:

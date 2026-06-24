@@ -18,6 +18,7 @@ from app.models.project import Project
 from app.models.video_source import VideoSource
 from app.models.video_source_item import VideoSourceItem
 from app.schemas.batch import BatchCreate
+from app.schemas.connection import ConnectionCreate
 from app.schemas.video_source import AddLinks, RunRequest
 from app.services.batch_service import BatchService
 from app.services.connection_service import ConnectionService
@@ -27,6 +28,22 @@ from app.services.video_dedup import dedup_key, extract_video_id, url_hash
 
 _URL_RE = re.compile(r"https?://[^\s,;\"']+")
 _DEFAULT_PROJECT = "Video Sources"
+_SHEET_ID_RE = re.compile(r"/spreadsheets/d/([A-Za-z0-9_-]+)")
+_SHEETS_CAPS = [
+    "cloud.google_sheets.read",
+    "cloud.google_sheets.write",
+    "cloud.google_sheets.append",
+    "cloud.google_sheets.update_cell",
+    "cloud.google_sheets.update_row",
+]
+
+
+def _extract_spreadsheet_id(raw: str | None) -> str:
+    """Nhận URL đầy đủ hoặc ID thô -> trả ID. Cho phép người dùng dán nguyên link."""
+    if not raw:
+        return ""
+    m = _SHEET_ID_RE.search(raw)
+    return m.group(1) if m else raw.strip()
 
 # Bộ lọc import (thực hiện ở Backend, dựa trên cột Status write-back của chính Sheet).
 IMPORT_FILTERS = {"all", "unprocessed", "failed", "not_downloaded"}
@@ -287,12 +304,43 @@ class VideoSourceService:
 
     # ----- Google Sheets (phương án B: Backend đọc, Agent KHÔNG tham gia preview) -----
     @staticmethod
+    async def _ensure_connection(session: AsyncSession, source: VideoSource) -> str:
+        """Đảm bảo nguồn có connection_id. Nếu thiếu nhưng có Spreadsheet ID -> TỰ TẠO connection
+        (dùng credential google_sheets, auto-seed từ gsa.json). Người dùng khỏi vào External Apps.
+        """
+        cfg = dict(source.config or {})
+        if cfg.get("connection_id"):
+            return cfg["connection_id"]
+        spreadsheet_id = _extract_spreadsheet_id(cfg.get("spreadsheet_id"))
+        if not spreadsheet_id:
+            raise ValidationAppError("Nguồn Google Sheets thiếu Spreadsheet ID (dán link hoặc ID)")
+        cred = await CredentialService.ensure_default_google(session)
+        if cred is None:
+            raise ValidationAppError(
+                "Chưa có credential Google — đặt file gsa.json vào backend/.secrets/ rồi thử lại"
+            )
+        conn = await ConnectionService.create(
+            session,
+            ConnectionCreate(
+                provider="google_sheets",
+                credential_id=cred.id,
+                display_name=(source.name or "Google Sheets")[:120],
+                capabilities=_SHEETS_CAPS,
+                settings={"spreadsheet_id": spreadsheet_id, "worksheet": cfg.get("worksheet", "")},
+            ),
+        )
+        cfg["connection_id"] = conn.id
+        cfg["spreadsheet_id"] = spreadsheet_id  # chuẩn hoá (nếu dán URL)
+        source.config = cfg
+        await session.commit()
+        await session.refresh(source)
+        return conn.id
+
+    @staticmethod
     async def _read_sheet_rows(session: AsyncSession, source: VideoSource) -> list[dict]:
         """Đọc + parse Sheet -> list dict (url/title/sheet_row/video_id/url_hash/sheet_status)."""
+        conn_id = await VideoSourceService._ensure_connection(session, source)
         cfg = source.config or {}
-        conn_id = cfg.get("connection_id")
-        if not conn_id:
-            raise ValidationAppError("Nguồn Google Sheets thiếu connection_id")
         conn = await ConnectionService.get(session, conn_id)
         if not conn.credential_id:
             raise ValidationAppError("Connection chưa gắn credential")

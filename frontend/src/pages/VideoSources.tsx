@@ -509,6 +509,9 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
   const [limit, setLimit] = useState(0);
   const [writeback, setWriteback] = useState(Boolean(cfg.writeback));
   const [wbWorksheet, setWbWorksheet] = useState(cfg.writeback_worksheet ?? "");
+  const [autoSync, setAutoSync] = useState(Boolean(cfg.auto_sync));
+  const [autoInterval, setAutoInterval] = useState(Number(cfg.auto_sync_interval) || 600);
+  const [autoRun, setAutoRun] = useState(Boolean(cfg.auto_run));
   const [count, setCount] = useState<{ matched: number; new: number; duplicate: number } | null>(
     null,
   );
@@ -520,15 +523,27 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
   const saveConfig = () =>
     update.mutateAsync({
       config: {
-        connection_id: connId,
+        connection_id: connId || undefined,
         spreadsheet_id: spreadsheetId.trim(),
         worksheet: worksheet.trim(),
         url_column: urlColumn.trim(),
         title_column: titleColumn.trim() || undefined,
         writeback,
         writeback_worksheet: wbWorksheet.trim() || undefined,
+        auto_sync: autoSync,
+        auto_sync_interval: autoInterval,
+        auto_run: autoRun,
       },
     });
+
+  const onSaveConfig = async () => {
+    try {
+      await saveConfig();
+      push("success", autoSync ? "Đã lưu — sẽ tự đồng bộ định kỳ" : "Đã lưu cấu hình");
+    } catch (e) {
+      onErr(e);
+    }
+  };
 
   const onTest = () => {
     if (!connId) return push("error", "Chọn Connection trước");
@@ -588,7 +603,7 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
           ))}
         </select>
         <input className={INPUT} value={spreadsheetId} onChange={(e) => setSpreadsheetId(e.target.value)}
-          placeholder="Spreadsheet ID" />
+          placeholder="Spreadsheet ID hoặc dán nguyên link Sheet" />
         <input className={INPUT} value={worksheet} onChange={(e) => setWorksheet(e.target.value)}
           placeholder="Worksheet (trống = sheet đầu)" />
         <input className={INPUT} value={urlColumn} onChange={(e) => setUrlColumn(e.target.value)}
@@ -626,6 +641,36 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
             value={wbWorksheet} onChange={(e) => setWbWorksheet(e.target.value)}
             placeholder="Worksheet ghi (trống = cùng tab)" />
         )}
+      </div>
+
+      {/* Auto-Sync: web TỰ phát hiện sản phẩm mới trong Sheet (không tải lại video cũ) */}
+      <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-border bg-bg p-2 text-sm">
+        <label className="flex items-center gap-1 font-medium text-text" title="Tự quét Sheet định kỳ, chỉ nạp video mới (dedup bỏ video cũ)">
+          <input type="checkbox" checked={autoSync} onChange={(e) => setAutoSync(e.target.checked)} />
+          Tự đồng bộ (phát hiện video mới)
+        </label>
+        {autoSync && (
+          <>
+            <label className="flex items-center gap-1 text-muted">
+              mỗi
+              <select className="rounded border border-border bg-bg px-2 py-1 text-text"
+                value={autoInterval} onChange={(e) => setAutoInterval(Number(e.target.value))}>
+                <option value={300}>5 phút</option>
+                <option value={600}>10 phút</option>
+                <option value={1800}>30 phút</option>
+                <option value={3600}>1 giờ</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-1 text-muted" title="Tải luôn video mới sau khi phát hiện">
+              <input type="checkbox" checked={autoRun} onChange={(e) => setAutoRun(e.target.checked)} />
+              Tự tải luôn
+            </label>
+          </>
+        )}
+        <button onClick={onSaveConfig} disabled={update.isPending}
+          className="ml-auto rounded border border-border px-3 py-1 text-text hover:bg-border disabled:opacity-50">
+          💾 Lưu cấu hình
+        </button>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -700,8 +745,8 @@ function sourceHost(url: string): string {
 function noConnHint(n: number) {
   if (n > 0) return null;
   return (
-    <span className="text-xs text-warning">
-      Chưa có Connection Google Sheets — tạo ở trang External Applications.
+    <span className="text-xs text-muted">
+      Chưa chọn Connection — hệ thống sẽ TỰ tạo từ gsa.json khi Read/Import.
     </span>
   );
 }
