@@ -64,6 +64,9 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
+        # Cho phép mọi origin localhost/127.0.0.1 (mọi cổng) — tránh kẹt CORS khi chạy local
+        # bằng địa chỉ khác cổng cấu hình (SPEC 04 §6). Production vẫn dùng cors_origins tường minh.
+        allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
