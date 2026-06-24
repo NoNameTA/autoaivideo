@@ -7,6 +7,7 @@ import type {
   PluginRegister,
   ProjectCreate,
   ProjectUpdate,
+  SheetReadRequest,
 } from "../types/api";
 import { endpoints } from "./endpoints";
 
@@ -117,19 +118,36 @@ export function useLogs(q: LogQuery) {
   });
 }
 
-export function useStats() {
-  return useQuery({ queryKey: ["stats"], queryFn: endpoints.getStats });
+export function useStats(refetchMs?: number) {
+  return useQuery({
+    queryKey: ["stats"],
+    queryFn: endpoints.getStats,
+    refetchInterval: refetchMs && refetchMs > 0 ? refetchMs : false,
+  });
 }
 
-export function useVideoSources() {
-  return useQuery({ queryKey: ["video-sources"], queryFn: endpoints.listVideoSources });
+export function useVideoSources(refetchMs?: number) {
+  return useQuery({
+    queryKey: ["video-sources"],
+    queryFn: endpoints.listVideoSources,
+    refetchInterval: refetchMs && refetchMs > 0 ? refetchMs : false,
+  });
 }
 
-export function useVideoItems(id: string | undefined) {
+export function useVideoSourcesSummary(refetchMs?: number) {
+  return useQuery({
+    queryKey: ["video-sources-summary"],
+    queryFn: endpoints.videoSourcesSummary,
+    refetchInterval: refetchMs && refetchMs > 0 ? refetchMs : false,
+  });
+}
+
+export function useVideoItems(id: string | undefined, refetchMs?: number) {
   return useQuery({
     queryKey: ["video-items", id],
     queryFn: () => endpoints.listVideoItems(id as string),
     enabled: !!id,
+    refetchInterval: refetchMs && refetchMs > 0 ? refetchMs : false,
   });
 }
 
@@ -159,15 +177,24 @@ export function useUpdateVideoSource(id: string) {
 }
 
 export function useReadVideoSheet(id: string) {
-  return useMutation({ mutationFn: () => endpoints.readVideoSheet(id) });
+  return useMutation({
+    mutationFn: (body?: SheetReadRequest) => endpoints.readVideoSheet(id, body ?? {}),
+  });
+}
+
+export function useCountVideoSheet(id: string) {
+  return useMutation({
+    mutationFn: (body?: SheetReadRequest) => endpoints.countVideoSheet(id, body ?? {}),
+  });
 }
 
 export function useImportVideoSheet(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => endpoints.importVideoSheet(id),
+    mutationFn: (body?: SheetReadRequest) => endpoints.importVideoSheet(id, body ?? {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["video-sources"] });
+      qc.invalidateQueries({ queryKey: ["video-sources-summary"] });
       qc.invalidateQueries({ queryKey: ["video-items", id] });
     },
   });
@@ -179,6 +206,7 @@ export function useAddVideoLinks(id: string) {
     mutationFn: (data: { urls?: string[]; text?: string }) => endpoints.addVideoLinks(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["video-sources"] });
+      qc.invalidateQueries({ queryKey: ["video-sources-summary"] });
       qc.invalidateQueries({ queryKey: ["video-items", id] });
     },
   });
@@ -200,6 +228,7 @@ export function useRunVideoSource(id: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["video-items", id] });
       qc.invalidateQueries({ queryKey: ["video-sources"] });
+      qc.invalidateQueries({ queryKey: ["video-sources-summary"] });
       qc.invalidateQueries({ queryKey: ["jobs-all"] });
     },
   });

@@ -177,6 +177,15 @@ export interface VideoStats {
   total_asset_bytes: number;
 }
 
+export interface DownloadStats {
+  downloads_total: number;
+  downloads_success: number;
+  downloads_failed: number;
+  total_bytes: number;
+  download_seconds: number;
+  avg_speed_bps: number;
+}
+
 export interface Stats {
   jobs_total: number;
   jobs_by_status: Record<string, number>;
@@ -188,6 +197,7 @@ export interface Stats {
   throughput: ThroughputPoint[];
   adapters: AdapterStat[];
   video: VideoStats;
+  download: DownloadStats;
   generated_at: string;
 }
 
@@ -199,6 +209,7 @@ export interface VideoSource {
   config: Record<string, unknown>;
   status: string;
   item_count: number;
+  duplicate_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -210,6 +221,8 @@ export interface VideoSourceItem {
   url: string;
   title: string | null;
   status: string;
+  sheet_row?: number | null;
+  video_id?: string | null;
   job_id: string | null;
   created_at: string;
   updated_at: string;
@@ -225,6 +238,46 @@ export interface SheetPreviewRow {
   url: string;
   title: string | null;
   status: string;
+  sheet_row?: number | null;
+}
+
+// Tham số đọc/import Sheet: filter (Backend lọc) + limit (Batch Import).
+export interface SheetReadRequest {
+  filter?: "all" | "unprocessed" | "failed" | "not_downloaded";
+  limit?: number | null;
+}
+
+export interface SheetCountResult {
+  total_rows: number;
+  matched: number;
+  new: number;
+  duplicate: number;
+}
+
+export interface SheetImportResult {
+  source: VideoSource;
+  imported: number;
+  duplicates: number;
+  matched: number;
+}
+
+// Tổng hợp Video Sources (GET /video-sources/summary).
+export type StatusBreakdown = Record<"pending" | "processing" | "done" | "failed", number>;
+
+export interface VideoSourceSummaryRow {
+  id: string;
+  name: string;
+  source_type: string;
+  status: string;
+  item_count: number;
+  duplicate_count: number;
+  by_status: StatusBreakdown;
+}
+
+export interface VideoSourcesSummary {
+  totals: StatusBreakdown & { items: number; sources: number; duplicate: number };
+  by_type: Record<string, StatusBreakdown & { sources: number; items: number; duplicate: number }>;
+  sources: VideoSourceSummaryRow[];
 }
 
 // External Apps — adapter bọc app ngoài (SPEC 06).

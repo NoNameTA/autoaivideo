@@ -5,6 +5,7 @@ import { ApiError } from "../api/client";
 import {
   useAddVideoLinks,
   useConnections,
+  useCountVideoSheet,
   useCreateVideoSource,
   useDeleteVideoItem,
   useDeleteVideoSource,
@@ -15,10 +16,17 @@ import {
   useUpdateVideoSource,
   useVideoItems,
   useVideoSources,
+  useVideoSourcesSummary,
 } from "../api/hooks";
 import { SectionPanel } from "../components/SectionPanel";
 import { useUiStore } from "../store/ui";
-import type { SheetPreviewRow, VideoSource, VideoSourceItem } from "../types/api";
+import type {
+  SheetReadRequest,
+  SheetPreviewRow,
+  VideoSource,
+  VideoSourceItem,
+  VideoSourcesSummary,
+} from "../types/api";
 
 const INPUT = "w-full rounded border border-border bg-bg px-3 py-2 text-sm text-text";
 const STATUS_COLOR: Record<string, string> = {
@@ -29,8 +37,35 @@ const STATUS_COLOR: Record<string, string> = {
 };
 const FILTERS = ["", "pending", "processing", "done", "failed"];
 
+// Auto Refresh (incremental qua React Query refetchInterval — không reload trang).
+const AUTO_OPTIONS: { label: string; ms: number }[] = [
+  { label: "Tắt", ms: 0 },
+  { label: "30 giây", ms: 30_000 },
+  { label: "1 phút", ms: 60_000 },
+  { label: "5 phút", ms: 300_000 },
+];
+
+// Bộ lọc Import (Backend lọc theo cột Status của Sheet).
+const IMPORT_FILTERS: { value: NonNullable<SheetReadRequest["filter"]>; label: string }[] = [
+  { value: "all", label: "Tất cả" },
+  { value: "unprocessed", label: "Chưa xử lý" },
+  { value: "failed", label: "Lỗi" },
+  { value: "not_downloaded", label: "Chưa download" },
+];
+
+// Batch Import (số lượng tối đa mỗi lần import).
+const BATCH_LIMITS: { value: number; label: string }[] = [
+  { value: 0, label: "Toàn bộ" },
+  { value: 100, label: "100" },
+  { value: 500, label: "500" },
+  { value: 1000, label: "1000" },
+  { value: 5000, label: "5000" },
+];
+
 export function VideoSources() {
-  const sources = useVideoSources();
+  const [autoMs, setAutoMs] = useState(0);
+  const sources = useVideoSources(autoMs);
+  const summary = useVideoSourcesSummary(autoMs);
   const createSrc = useCreateVideoSource();
   const delSrc = useDeleteVideoSource();
   const push = useUiStore((s) => s.pushToast);
@@ -40,6 +75,10 @@ export function VideoSources() {
   const [newType, setNewType] = useState("direct_url");
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const selectedSource = sources.data?.find((s) => s.id === selectedId);
+  const byId = useMemo(
+    () => new Map((summary.data?.sources ?? []).map((r) => [r.id, r])),
+    [summary.data],
+  );
 
   const addSource = () => {
     if (!newName.trim()) return;
@@ -85,7 +124,31 @@ export function VideoSources() {
         >
           + Tạo nguồn
         </button>
+        {/* Auto Refresh (incremental, không reload trang) */}
+        <div className="ml-auto flex items-center gap-1 text-xs text-muted">
+          <span>Auto refresh</span>
+          <select
+            className="rounded border border-border bg-bg px-2 py-1 text-text"
+            value={autoMs}
+            onChange={(e) => setAutoMs(Number(e.target.value))}
+          >
+            {AUTO_OPTIONS.map((o) => (
+              <option key={o.ms} value={o.ms}>{o.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              sources.refetch();
+              summary.refetch();
+            }}
+            className="rounded border border-border px-2 py-1 text-text hover:bg-border"
+          >
+            ↻ Refresh
+          </button>
+        </div>
       </div>
+
+      <SummaryHeader summary={summary.data} />
 
       {sources.isLoading && <p className="text-sm text-muted">Đang tải…</p>}
       {sources.data && sources.data.length === 0 && (
@@ -108,6 +171,7 @@ export function VideoSources() {
             <div className="mt-1 text-xs text-muted">
               {s.item_count} video · {s.status}
             </div>
+            <SourceBadges row={byId.get(s.id)} duplicate={s.duplicate_count ?? 0} />
             <span
               onClick={(e) => {
                 e.stopPropagation();
@@ -127,14 +191,84 @@ export function VideoSources() {
         ))}
       </div>
 
-      {selectedSource && <SourceDetail key={selectedSource.id} source={selectedSource} />}
+      {selectedSource && (
+        <SourceDetail key={selectedSource.id} source={selectedSource} autoMs={autoMs} />
+      )}
     </SectionPanel>
   );
 }
 
-function SourceDetail({ source }: { source: VideoSource }) {
+function StatPill({ label, value, color }: { label: string; value: number; color?: string }) {
+  return (
+    <div className="rounded border border-border bg-bg px-2 py-1 text-center">
+      <div className={`text-base font-semibold ${color ?? "text-text"}`}>{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-muted">{label}</div>
+    </div>
+  );
+}
+
+function SummaryHeader({ summary }: { summary: VideoSourcesSummary | undefined }) {
+  if (!summary) return null;
+  const t = summary.totals;
+  const byType = Object.entries(summary.by_type);
+  return (
+    <div className="mb-4 rounded-lg border border-border bg-surface p-3">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-8">
+        <StatPill label="Tổng video" value={t.items} />
+        <StatPill label="Imported" value={t.items} />
+        <StatPill label="Ready" value={t.pending} color="text-muted" />
+        <StatPill label="Running" value={t.processing} color="text-info" />
+        <StatPill label="Done" value={t.done} color="text-success" />
+        <StatPill label="Failed" value={t.failed} color="text-danger" />
+        <StatPill label="Duplicate" value={t.duplicate} color="text-warning" />
+        <StatPill label="Nguồn" value={t.sources} />
+      </div>
+      {byType.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted">
+          <span className="text-muted">Theo loại:</span>
+          {byType.map(([type, v]) => (
+            <span key={type} className="rounded bg-border px-2 py-0.5">
+              {type}: {v.items} video · {v.sources} nguồn
+              {v.duplicate ? ` · dup ${v.duplicate}` : ""}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SourceBadges({
+  row,
+  duplicate,
+}: {
+  row: VideoSourcesSummary["sources"][number] | undefined;
+  duplicate: number;
+}) {
+  if (!row) return null;
+  const b = row.by_status;
+  const chips: { label: string; n: number; cls: string }[] = [
+    { label: "Ready", n: b.pending, cls: "text-muted" },
+    { label: "Run", n: b.processing, cls: "text-info" },
+    { label: "Done", n: b.done, cls: "text-success" },
+    { label: "Fail", n: b.failed, cls: "text-danger" },
+    { label: "Dup", n: duplicate, cls: "text-warning" },
+  ].filter((c) => c.n > 0);
+  if (chips.length === 0) return null;
+  return (
+    <div className="mt-1 flex flex-wrap gap-1">
+      {chips.map((c) => (
+        <span key={c.label} className={`rounded bg-border px-1.5 py-0.5 text-[10px] ${c.cls}`}>
+          {c.label} {c.n}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number }) {
   const sourceId = source.id;
-  const items = useVideoItems(sourceId);
+  const items = useVideoItems(sourceId, autoMs);
   const addLinks = useAddVideoLinks(sourceId);
   const delItem = useDeleteVideoItem(sourceId);
   const run = useRunVideoSource(sourceId);
@@ -361,6 +495,7 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
   const testConn = useTestConnection();
   const readSheet = useReadVideoSheet(source.id);
   const importSheet = useImportVideoSheet(source.id);
+  const countSheet = useCountVideoSheet(source.id);
   const push = useUiStore((s) => s.pushToast);
   const onErr = (e: unknown) => push("error", (e as ApiError).message);
 
@@ -370,9 +505,17 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
   const [worksheet, setWorksheet] = useState(cfg.worksheet ?? "");
   const [urlColumn, setUrlColumn] = useState(cfg.url_column ?? "VideoURL");
   const [titleColumn, setTitleColumn] = useState(cfg.title_column ?? "");
+  const [filter, setFilter] = useState<NonNullable<SheetReadRequest["filter"]>>("all");
+  const [limit, setLimit] = useState(0);
+  const [writeback, setWriteback] = useState(Boolean(cfg.writeback));
+  const [wbWorksheet, setWbWorksheet] = useState(cfg.writeback_worksheet ?? "");
+  const [count, setCount] = useState<{ matched: number; new: number; duplicate: number } | null>(
+    null,
+  );
   const [preview, setPreview] = useState<SheetPreviewRow[] | null>(null);
 
   const gsConns = (connections.data ?? []).filter((c) => c.provider === "google_sheets");
+  const body = (): SheetReadRequest => ({ filter, limit: limit > 0 ? limit : null });
 
   const saveConfig = () =>
     update.mutateAsync({
@@ -382,6 +525,8 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
         worksheet: worksheet.trim(),
         url_column: urlColumn.trim(),
         title_column: titleColumn.trim() || undefined,
+        writeback,
+        writeback_worksheet: wbWorksheet.trim() || undefined,
       },
     });
 
@@ -393,10 +538,21 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
     });
   };
 
+  const onCount = async () => {
+    try {
+      await saveConfig();
+      const c = await countSheet.mutateAsync(body());
+      setCount(c);
+      push("success", `Khớp ${c.matched} · mới ${c.new} · trùng ${c.duplicate}`);
+    } catch (e) {
+      onErr(e);
+    }
+  };
+
   const onRead = async () => {
     try {
       await saveConfig();
-      const rows = await readSheet.mutateAsync();
+      const rows = await readSheet.mutateAsync(body());
       setPreview(rows);
       push("success", `Đọc Sheet: ${rows.length} video`);
     } catch (e) {
@@ -407,10 +563,11 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
   const onImport = async () => {
     try {
       await saveConfig();
-      const r = await importSheet.mutateAsync();
+      const r = await importSheet.mutateAsync(body());
       setPreview(null);
+      setCount(null);
       onImported();
-      push("success", `Đã import ${r.item_count} video`);
+      push("success", `Đã import ${r.imported} video (bỏ ${r.duplicates} trùng)`);
     } catch (e) {
       onErr(e);
     }
@@ -439,10 +596,46 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
         <input className={INPUT} value={titleColumn} onChange={(e) => setTitleColumn(e.target.value)}
           placeholder="Cột Tên (tuỳ chọn)" />
       </div>
+
+      {/* Import Filter + Batch Import + Write-back */}
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+        <label className="flex items-center gap-1 text-muted">
+          Lọc
+          <select className="rounded border border-border bg-bg px-2 py-1 text-text"
+            value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
+            {IMPORT_FILTERS.map((f) => (
+              <option key={f.value} value={f.value}>{f.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-1 text-muted">
+          Batch
+          <select className="rounded border border-border bg-bg px-2 py-1 text-text"
+            value={limit} onChange={(e) => setLimit(Number(e.target.value))}>
+            {BATCH_LIMITS.map((b) => (
+              <option key={b.value} value={b.value}>{b.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-1 text-muted" title="Ghi kết quả về Sheet sau khi tải xong">
+          <input type="checkbox" checked={writeback} onChange={(e) => setWriteback(e.target.checked)} />
+          Write-back
+        </label>
+        {writeback && (
+          <input className="w-44 rounded border border-border bg-bg px-2 py-1 text-sm text-text"
+            value={wbWorksheet} onChange={(e) => setWbWorksheet(e.target.value)}
+            placeholder="Worksheet ghi (trống = cùng tab)" />
+        )}
+      </div>
+
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button onClick={onTest} disabled={testConn.isPending}
           className="rounded border border-border px-3 py-1 text-sm text-text hover:bg-border disabled:opacity-50">
           Test Connection
+        </button>
+        <button onClick={onCount} disabled={countSheet.isPending}
+          className="rounded border border-border px-3 py-1 text-sm text-text hover:bg-border disabled:opacity-50">
+          {countSheet.isPending ? "Đang đếm…" : "Đếm trước"}
         </button>
         <button onClick={onRead} disabled={readSheet.isPending}
           className="rounded border border-border px-3 py-1 text-sm text-text hover:bg-border disabled:opacity-50">
@@ -452,6 +645,12 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
           className="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-hover disabled:opacity-50">
           {importSheet.isPending ? "Đang import…" : "Import"}
         </button>
+        {count && (
+          <span className="text-xs text-muted">
+            Sẽ import <span className="font-semibold text-text">{count.new}</span> mới · trùng{" "}
+            <span className="text-warning">{count.duplicate}</span> / khớp {count.matched}
+          </span>
+        )}
         {noConnHint(gsConns.length)}
       </div>
 
@@ -461,12 +660,25 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
             Preview {preview.length} dòng (chưa import):
           </div>
           <table className="w-full text-sm">
+            <thead className="text-left text-xs text-muted">
+              <tr className="border-b border-border">
+                <th className="py-1 pl-3 pr-2">Dòng</th>
+                <th className="py-1 pr-3">Title</th>
+                <th className="py-1 pr-3">Source</th>
+                <th className="py-1 pr-3">URL</th>
+                <th className="py-1 pr-3">Status</th>
+              </tr>
+            </thead>
             <tbody>
               {preview.map((r) => (
                 <tr key={r.seq} className="border-b border-border/50">
-                  <td className="py-1 pl-3 pr-2 text-muted">{r.seq + 1}</td>
+                  <td className="py-1 pl-3 pr-2 text-muted">{r.sheet_row ?? r.seq + 1}</td>
                   <td className="py-1 pr-3 text-text">{r.title || "—"}</td>
-                  <td className="py-1 pr-3 font-mono text-xs text-muted">{r.url}</td>
+                  <td className="py-1 pr-3 text-xs text-muted">{sourceHost(r.url)}</td>
+                  <td className="py-1 pr-3 max-w-xs truncate font-mono text-xs text-muted" title={r.url}>
+                    {r.url}
+                  </td>
+                  <td className="py-1 pr-3 text-xs text-muted">{r.status}</td>
                 </tr>
               ))}
             </tbody>
@@ -475,6 +687,14 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
       )}
     </div>
   );
+}
+
+function sourceHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "—";
+  }
 }
 
 function noConnHint(n: number) {

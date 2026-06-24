@@ -22,10 +22,14 @@ import type {
   ProjectCreate,
   ProjectUpdate,
   RunResult,
+  SheetCountResult,
+  SheetImportResult,
   SheetPreviewRow,
+  SheetReadRequest,
   Stats,
   VideoSource,
   VideoSourceItem,
+  VideoSourcesSummary,
 } from "../types/api";
 import type { AllowedFolder, FsEntry, ReadResult, ScanResult } from "../types/fs";
 import type { Pipeline, PipelineInput } from "../types/pipeline";
@@ -74,15 +78,18 @@ export const endpoints = {
 
   // Video Sources (SPEC 02 §4.1)
   listVideoSources: () => http.get<VideoSource[]>("/api/v1/video-sources"),
+  videoSourcesSummary: () => http.get<VideoSourcesSummary>("/api/v1/video-sources/summary"),
   createVideoSource: (data: { name: string; source_type?: string; config?: Record<string, unknown> }) =>
     http.post<VideoSource>("/api/v1/video-sources", data),
   updateVideoSource: (id: string, data: { name?: string; config?: Record<string, unknown> }) =>
     http.patch<VideoSource>(`/api/v1/video-sources/${id}`, data),
   deleteVideoSource: (id: string) => http.del(`/api/v1/video-sources/${id}`),
-  readVideoSheet: (id: string) =>
-    http.post<SheetPreviewRow[]>(`/api/v1/video-sources/${id}/read-sheet`),
-  importVideoSheet: (id: string) =>
-    http.post<VideoSource>(`/api/v1/video-sources/${id}/import-sheet`),
+  readVideoSheet: (id: string, body: SheetReadRequest = {}) =>
+    http.post<SheetPreviewRow[]>(`/api/v1/video-sources/${id}/read-sheet`, body),
+  countVideoSheet: (id: string, body: SheetReadRequest = {}) =>
+    http.post<SheetCountResult>(`/api/v1/video-sources/${id}/count-sheet`, body),
+  importVideoSheet: (id: string, body: SheetReadRequest = {}) =>
+    http.post<SheetImportResult>(`/api/v1/video-sources/${id}/import-sheet`, body),
   listVideoItems: (id: string) => http.get<VideoSourceItem[]>(`/api/v1/video-sources/${id}/items`),
   addVideoLinks: (id: string, data: { urls?: string[]; text?: string }) =>
     http.post<VideoSource>(`/api/v1/video-sources/${id}/links`, data),

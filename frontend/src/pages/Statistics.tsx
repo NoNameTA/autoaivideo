@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { ApiError } from "../api/client";
 import { useStats } from "../api/hooks";
 import { SectionPanel } from "../components/SectionPanel";
@@ -30,6 +32,17 @@ function fmtBytes(b: number): string {
   const i = Math.min(Math.floor(Math.log(b) / Math.log(1024)), u.length - 1);
   return `${(b / 1024 ** i).toFixed(1)} ${u[i]}`;
 }
+
+function fmtSpeed(bps: number): string {
+  return bps > 0 ? `${fmtBytes(bps)}/s` : "—";
+}
+
+const AUTO_OPTIONS: { label: string; ms: number }[] = [
+  { label: "Tắt", ms: 0 },
+  { label: "30 giây", ms: 30_000 },
+  { label: "1 phút", ms: 60_000 },
+  { label: "5 phút", ms: 300_000 },
+];
 
 function Kpi({ label, value, accent }: { label: string; value: string; accent?: string }) {
   return (
@@ -204,6 +217,26 @@ function Body({ data }: { data: Stats }) {
         </div>
       </div>
 
+      <div>
+        <h2 className="mb-3 text-sm font-semibold text-text">Download (yt-dlp / media.download)</h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <Kpi label="Tổng lượt tải" value={String(data.download.downloads_total)} />
+          <Kpi
+            label="Thành công"
+            value={String(data.download.downloads_success)}
+            accent="var(--success)"
+          />
+          <Kpi
+            label="Lỗi"
+            value={String(data.download.downloads_failed)}
+            accent={data.download.downloads_failed ? "var(--danger)" : undefined}
+          />
+          <Kpi label="Dung lượng tải" value={fmtBytes(data.download.total_bytes)} />
+          <Kpi label="Tốc độ TB" value={fmtSpeed(data.download.avg_speed_bps)} />
+          <Kpi label="Tổng thời gian tải" value={fmtSeconds(data.download.download_seconds)} />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <h2 className="mb-3 text-sm font-semibold text-text">Job theo trạng thái</h2>
@@ -233,7 +266,8 @@ function Body({ data }: { data: Stats }) {
 }
 
 export function Statistics() {
-  const stats = useStats();
+  const [autoMs, setAutoMs] = useState(0);
+  const stats = useStats(autoMs);
   const wsConnected = useUiStore((s) => s.wsConnected);
 
   return (
@@ -246,12 +280,24 @@ export function Statistics() {
         <span className={`text-xs ${wsConnected ? "text-success" : "text-muted"}`}>
           {wsConnected ? "● live" : "○ offline"}
         </span>
-        <button
-          onClick={() => stats.refetch()}
-          className="ml-auto rounded border border-border px-3 py-1 text-xs text-text hover:bg-border"
-        >
-          ↻ Làm mới
-        </button>
+        <div className="ml-auto flex items-center gap-1 text-xs text-muted">
+          <span>Auto</span>
+          <select
+            className="rounded border border-border bg-bg px-2 py-1 text-text"
+            value={autoMs}
+            onChange={(e) => setAutoMs(Number(e.target.value))}
+          >
+            {AUTO_OPTIONS.map((o) => (
+              <option key={o.ms} value={o.ms}>{o.label}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => stats.refetch()}
+            className="rounded border border-border px-3 py-1 text-text hover:bg-border"
+          >
+            ↻ Làm mới
+          </button>
+        </div>
       </div>
 
       {stats.isLoading && <p className="text-sm text-muted">Đang tải…</p>}
