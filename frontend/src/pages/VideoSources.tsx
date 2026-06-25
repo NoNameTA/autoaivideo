@@ -288,6 +288,16 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
   const [varSpin, setVarSpin] = useState(true);
   const [varRatio, setVarRatio] = useState(true);
   const [varCaption, setVarCaption] = useState(false);
+  // Tuỳ chỉnh Bulk Video Studio (logo/intro/outro/nhạc/speed) — map đúng Config của BulkAuto.
+  const [bvsOpen, setBvsOpen] = useState(false);
+  const [bvsLogo, setBvsLogo] = useState("");
+  const [bvsLogoProb, setBvsLogoProb] = useState(0.7);
+  const [bvsIntro, setBvsIntro] = useState("");
+  const [bvsIntroProb, setBvsIntroProb] = useState(0.4);
+  const [bvsOutro, setBvsOutro] = useState("");
+  const [bvsOutroProb, setBvsOutroProb] = useState(0.4);
+  const [bvsMusic, setBvsMusic] = useState("");
+  const [bvsSpeed, setBvsSpeed] = useState("auto");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const rows = useMemo(() => {
@@ -373,6 +383,26 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
     );
   };
 
+  // Gom tuỳ chỉnh BVS thành bvs_config (chỉ gửi field đã nhập → field trống = giữ mặc định BVS).
+  const buildBvsConfig = (): Record<string, unknown> | undefined => {
+    const cfg: Record<string, unknown> = {};
+    if (bvsLogo.trim()) {
+      cfg.logo_folder = bvsLogo.trim();
+      cfg.logo_prob = bvsLogoProb;
+    }
+    if (bvsIntro.trim()) {
+      cfg.intro_folder = bvsIntro.trim();
+      cfg.intro_prob = bvsIntroProb;
+    }
+    if (bvsOutro.trim()) {
+      cfg.outro_folder = bvsOutro.trim();
+      cfg.outro_prob = bvsOutroProb;
+    }
+    if (bvsMusic.trim()) cfg.music_folder = bvsMusic.trim();
+    if (bvsSpeed && bvsSpeed !== "auto") cfg.speed_mode = bvsSpeed;
+    return Object.keys(cfg).length ? cfg : undefined;
+  };
+
   const runBvsEdit = () => {
     const targets = (items.data ?? []).filter(
       (it) => selected.has(it.id) && it.status === "done",
@@ -381,9 +411,10 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
       push("error", "Chọn video ĐÃ TẢI XONG (done) để chỉnh bằng BVS");
       return;
     }
+    const bvs_config = buildBvsConfig();
     targets.forEach((it) =>
       bvsEdit.mutate(
-        { itemId: it.id },
+        { itemId: it.id, bvs_config },
         {
           onSuccess: () => push("success", `🎞️ Đã gửi "${it.title || "video"}" cho Bulk Video Studio chỉnh`),
           onError: onErr,
@@ -478,11 +509,73 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
           🎬 Tạo biến thể (video done đã chọn)
         </button>
         <button onClick={runBvsEdit} disabled={bvsEdit.isPending}
-          title="Chỉnh bằng bộ công cụ Bulk Video Studio (cần mở BulkAuto agent :8787)"
+          title="Chỉnh bằng bộ công cụ Bulk Video Studio (Agent tự mở BVS)"
           className="rounded border border-border px-3 py-1 text-text hover:bg-border disabled:opacity-50">
           🎞️ Chỉnh bằng BVS
         </button>
+        <button onClick={() => setBvsOpen((v) => !v)}
+          title="Tuỳ chỉnh logo / intro / outro / nhạc / tốc độ cho BVS"
+          className="rounded border border-border px-2 py-1 text-xs text-muted hover:bg-border">
+          ⚙️ Tuỳ chỉnh BVS {bvsOpen ? "▲" : "▼"}
+        </button>
       </div>
+
+      {/* Form tuỳ chỉnh BVS — map đúng Config BulkAuto (logo/intro/outro/nhạc/speed). Trống = mặc định. */}
+      {bvsOpen && (
+        <div className="mb-3 grid gap-3 rounded border border-border bg-bg p-3 text-sm sm:grid-cols-2">
+          <div className="sm:col-span-2 text-xs text-muted">
+            Nhập đường dẫn THƯ MỤC trên máy chạy Agent (chứa file logo/intro/outro/nhạc). Để trống =
+            giữ cấu hình mặc định của BVS. Tỉ lệ áp dụng 0–1 (vd 0.7 = 70% video được chèn).
+          </div>
+          <label className="flex flex-col gap-1 text-muted">
+            Thư mục Logo
+            <input className={INPUT} placeholder="vd: C:\BVS\logos" value={bvsLogo}
+              onChange={(e) => setBvsLogo(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1 text-muted">
+            Tỉ lệ chèn Logo
+            <input type="number" min={0} max={1} step={0.05} value={bvsLogoProb}
+              onChange={(e) => setBvsLogoProb(Math.max(0, Math.min(1, Number(e.target.value) || 0)))}
+              className={INPUT} disabled={!bvsLogo.trim()} />
+          </label>
+          <label className="flex flex-col gap-1 text-muted">
+            Thư mục Intro
+            <input className={INPUT} placeholder="vd: C:\BVS\intro" value={bvsIntro}
+              onChange={(e) => setBvsIntro(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1 text-muted">
+            Tỉ lệ chèn Intro
+            <input type="number" min={0} max={1} step={0.05} value={bvsIntroProb}
+              onChange={(e) => setBvsIntroProb(Math.max(0, Math.min(1, Number(e.target.value) || 0)))}
+              className={INPUT} disabled={!bvsIntro.trim()} />
+          </label>
+          <label className="flex flex-col gap-1 text-muted">
+            Thư mục Outro
+            <input className={INPUT} placeholder="vd: C:\BVS\outro" value={bvsOutro}
+              onChange={(e) => setBvsOutro(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1 text-muted">
+            Tỉ lệ chèn Outro
+            <input type="number" min={0} max={1} step={0.05} value={bvsOutroProb}
+              onChange={(e) => setBvsOutroProb(Math.max(0, Math.min(1, Number(e.target.value) || 0)))}
+              className={INPUT} disabled={!bvsOutro.trim()} />
+          </label>
+          <label className="flex flex-col gap-1 text-muted">
+            Thư mục Nhạc nền
+            <input className={INPUT} placeholder="vd: C:\BVS\music" value={bvsMusic}
+              onChange={(e) => setBvsMusic(e.target.value)} />
+          </label>
+          <label className="flex flex-col gap-1 text-muted">
+            Chế độ tốc độ (speed)
+            <select className={INPUT} value={bvsSpeed} onChange={(e) => setBvsSpeed(e.target.value)}>
+              <option value="auto">auto (mặc định)</option>
+              <option value="marker">marker (theo tên file)</option>
+              <option value="heuristic">heuristic (dò cảnh)</option>
+              <option value="off">off (giữ nguyên)</option>
+            </select>
+          </label>
+        </div>
+      )}
 
       {/* Bộ lọc + tìm kiếm */}
       <div className="mb-2 flex flex-wrap items-center gap-2">

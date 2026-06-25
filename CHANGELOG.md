@@ -4,6 +4,27 @@
 
 ## [Unreleased]
 
+### Form tuỳ chỉnh BVS trên web — logo/intro/outro/nhạc/tốc độ (2026-06-25)
+> Web có thể tuỳ chỉnh BVS khi bấm **"🎞️ Chỉnh bằng BVS"**: chọn thư mục logo/intro/outro/nhạc nền
+> + tỉ lệ chèn + chế độ tốc độ. **Additive, THUẦN FE** — schema `bvs_config` (dict), plugin
+> `bulkauto` (setattr lên `Config`), hook `useBvsEdit` & endpoint `bvsEdit` đã sẵn sàng từ trước;
+> chỉ thiếu form. KHÔNG đổi engine/queue/agent-core/DB/route/theme.
+
+#### Added — Frontend
+- `pages/VideoSources.tsx`: khối **"⚙️ Tuỳ chỉnh BVS"** (collapsible) cạnh nút "🎞️ Chỉnh bằng BVS"
+  với các field map ĐÚNG `Config` của BulkAuto: `logo_folder`+`logo_prob`, `intro_folder`+`intro_prob`,
+  `outro_folder`+`outro_prob`, `music_folder`, `speed_mode` (auto/marker/heuristic/off).
+- `buildBvsConfig()` chỉ gửi field đã nhập → field trống = giữ mặc định BVS (intro/outro bỏ qua khi
+  thư mục trống). Tỉ lệ chèn chỉ kèm khi có thư mục tương ứng. Truyền vào `bvsEdit.mutate({bvs_config})`.
+
+#### Verified (LIVE, browser, không mock)
+- Backend ruff ✅ pytest 60/1skip; FE lint+build ✅. Browser (web :5173 + backend :8000): mở form,
+  điền logo `C:\BVS\logos`+prob 0.7, nhạc `C:\BVS\music`, speed `off` → chặn fetch xác nhận body
+  POST `/bvs-edit` = `{"bvs_config":{"logo_folder":"C:\\BVS\\logos","logo_prob":0.7,
+  "music_folder":"C:\\BVS\\music","speed_mode":"off"}}` (intro/outro trống → bỏ qua đúng). Form
+  render đúng theme, toggle mở/đóng, không lỗi console. (BVS render thật với bvs_config đã chứng
+  minh ở `cf7de64`.)
+
 ### Cookie Manager (đa nền tảng) — Agent tự dùng cookie khi tải video (2026-06-25)
 > Bổ sung Cookie Manager: tải video TikTok/Facebook/YouTube/Instagram/X… không phụ thuộc trình
 > duyệt đang mở. **Additive** — KHÔNG đổi engine/queue/agent-core/DB schema. Adapter Framework:
