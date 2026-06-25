@@ -35,15 +35,17 @@ def resolve(asset_path: str, dest_folder: str | None = None) -> dict:
     rel = (asset_path or "").replace("\\", "/")
     filename = rel.rsplit("/", 1)[-1] if rel else ""
     if dest_folder:
-        folder = str(dest_folder).rstrip("/\\")
+        folder = os.path.abspath(str(dest_folder).rstrip("/\\"))
         full = os.path.join(folder, filename) if filename else folder
         return {
-            "output_path": os.path.normpath(full),
-            "output_folder": os.path.normpath(folder),
+            "output_path": os.path.abspath(full),
+            "output_folder": folder,
             "output_filename": filename,
         }
+    # Fallback (job KHÔNG có dest_folder, vd item tải phiên cũ): data_dir/asset.path.
+    # LUÔN trả ABSOLUTE (abspath) — backend DATA_DIR nên trỏ ĐÚNG data_dir Agent để path chính xác.
     base = get_settings().data_dir
-    full = os.path.normpath(os.path.join(base, rel)) if rel else ""
+    full = os.path.abspath(os.path.join(base, rel)) if rel else ""
     folder = os.path.dirname(full)
     return {"output_path": full, "output_folder": folder, "output_filename": filename}
 

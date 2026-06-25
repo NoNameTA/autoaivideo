@@ -4,6 +4,38 @@
 
 ## [Unreleased]
 
+### VERIFY LIVE Output Path + Output Path absolute (2026-06-25)
+> Hoàn tất các bước verify LIVE còn lại của tính năng Output Path (KHÔNG upload). Additive —
+> KHÔNG đổi engine/queue/agent-core/route/theme/DB.
+
+#### Fixed — Output Path luôn ABSOLUTE
+- `services/output_path.py`: `resolve()` dùng `os.path.abspath` cho CẢ 2 nhánh (dest_folder &
+  fallback) → mọi trường hợp trả đường dẫn TUYỆT ĐỐI. (Trước: fallback `os.path.normpath` cho ra
+  path tương đối khi `data_dir` tương đối.)
+
+#### Changed — Cấu hình (local, KHÔNG commit vì `.env` gitignored)
+- `backend/.env`: `DATA_DIR=C:\AIVideoPlatform\data` (trỏ ĐÚNG data_dir Desktop Agent cùng máy) →
+  Output Path fallback vừa tuyệt đối vừa ĐÚNG nơi file thật. **DB giữ nguyên** ở `backend/data/app.db`
+  (DATABASE_URL riêng). KHÔNG đổi kiến trúc, KHÔNG ảnh hưởng Agent.
+
+#### Verified LIVE (THẬT, không mock)
+- **Google Sheets Write-back LIVE** (Spreadsheet thật `Data link video Affiliate NV`, tab
+  `WritebackTest`): chạy 4 item → write-back tự ghi. Sheet hiện ĐÚNG cột mới **Output Path /
+  Output Filename / Completed Time / Duration / Status / Error** (tự thêm cột còn thiếu, KHÔNG đụng
+  cột khác). 3 row Done có Output Path tuyệt đối `C:\Users\PC\Videos\video gốc\...`; 1 row Failed có
+  Error. **Cột `Output URL` KHÔNG được ghi** (rỗng mọi row). (3 video TikTok ra `.mp3` do TikTok
+  chặn video/challenge — job vẫn completed; là giới hạn cookie đã biết, KHÔNG phải lỗi write-back.)
+- **Bulk Video Studio LIVE** (DIRECT, agent `win-pc-01`): render BBB → file THẬT
+  `C:\Users\PC\Videos\video da sua\bvs_Big_Buck_Bunny_360_10s_1MB__reels.mp4` **6.99MB**, mở được
+  (ffprobe **h264 1080×1918 7.33s**). Job + Queue Completed. Logs đủ: **Video.Edit.Start →
+  Video.Export.End** (bytes=6987976) → Workflow.End. (Lưu ý: agent cũ chạy code plugin cũ chưa copy
+  → đã RESTART agent nạp plugin mới mới copy được vào Export Folder.)
+- **Output Path absolute**: item fallback (không dest_folder) → `C:\AIVideoPlatform\data\jobs\...`
+  (abs=True, file thật tồn tại 967.8KB).
+- Browser (7 trang Workflow/Queue/Logs/Statistics/Video Sources/Settings/External): render OK, **0
+  lỗi console**; Logs có Video.Edit.Start/Video.Export.End; Statistics khối Export cập nhật thật
+  (12 Export, 42.4MB). Backend ruff ✅ pytest **65/1skip**; FE lint+build ✅.
+
 ### Output Path (KHÔNG upload) — video chỉ lưu trên máy Windows (2026-06-25)
 > Owner CHỐT kiến trúc: **KHÔNG upload, KHÔNG cloud** (loại bỏ Output URL/Upload Adapter). Thay
 > bằng **Output Path** — đường dẫn video THẬT trên máy. Video tải về → Download Folder; video đã
