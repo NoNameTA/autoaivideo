@@ -132,6 +132,7 @@ class StatsService:
         ).all()
         with_cookie = sum((d or {}).get("count", 1) for t, d in rows if t == "Cookie.Loaded")
         without_cookie = sum((d or {}).get("count", 1) for t, d in rows if t == "Cookie.Missing")
+        by_platform = await StatsService._downloads_by_platform(session, cfg)
         return {
             "configured": len(sts),
             "loaded": loaded,
@@ -139,7 +140,38 @@ class StatsService:
             "expired": expired,
             "downloads_with_cookie": with_cookie,
             "downloads_without_cookie": without_cookie,
+            "downloads_by_platform": by_platform,
         }
+
+    @staticmethod
+    async def _downloads_by_platform(session: AsyncSession, cfg: dict) -> dict:
+        """Đếm video ĐÃ TẢI XONG theo nền tảng (phân loại theo host URL — config-driven)."""
+        rows = (
+            await session.execute(
+                select(VideoSourceItem.url, VideoSourceItem.job_id)
+            )
+        ).all()
+        job_ids = [jid for _, jid in rows if jid]
+        done: set[str] = set()
+        if job_ids:
+            jrows = (
+                await session.execute(
+                    select(Job.id).where(
+                        Job.id.in_(job_ids), Job.status == JobStatus.completed.value
+                    )
+                )
+            ).scalars().all()
+            done = set(jrows)
+        counts: dict[str, int] = {}
+        for url, jid in rows:
+            if jid not in done:
+                continue
+            host = (url or "").lower()
+            for p in cfg.get("platforms", []):
+                if any(h and h in host for h in p.get("hosts", [])):
+                    counts[p["name"]] = counts.get(p["name"], 0) + 1
+                    break
+        return counts
 
     @staticmethod
     async def _download(session: AsyncSession) -> dict:

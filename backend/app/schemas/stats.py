@@ -56,6 +56,7 @@ class CookieStats(BaseModel):
     expired: int
     downloads_with_cookie: int
     downloads_without_cookie: int
+    downloads_by_platform: dict[str, int] = {}
 
 
 class StatsOut(BaseModel):

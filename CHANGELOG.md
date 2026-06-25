@@ -4,6 +4,48 @@
 
 ## [Unreleased]
 
+### Cookie Manager — Agent test cookie THẬT + auto-detect + per-platform stats (2026-06-25)
+> Hoàn thiện Cookie Manager: Desktop Agent (nơi DUY NHẤT đọc cookie) test cookie THẬT với nền tảng;
+> tự phát hiện cookie mới (không restart); thống kê theo nền tảng; hướng dẫn xuất cookie trên web.
+> **Additive** — KHÔNG đổi Workflow/Queue Engine, KHÔNG đổi DB schema. KHÔNG mock, KHÔNG bịa cookie,
+> KHÔNG vượt App-Bound Encryption (chỉ dùng cookies.txt người dùng xuất hợp lệ).
+
+#### Added — Agent test cookie THẬT (RPC cookie.request/response, mirror fs_rpc)
+- `agent/cookie_test.py`: Agent đọc cookie + test 2 mức THẬT: (1) load bằng cookie-jar yt-dlp
+  (xác thực Netscape + suy hết hạn, không mạng); (2) nếu có `test_url` → chạy `yt-dlp --simulate`
+  THẬT với cookie → đăng nhập OK = valid, bị chặn = authentication_failed. Status-only, KHÔNG lộ
+  nội dung cookie. `agent/connection.py` xử lý `cookie.request` → `cookie.response`.
+- Backend `app/api/ws/cookie_rpc.py` (CookieRpc, mirror FsRpc) + handler `cookie.response` trong
+  `ws/agent.py`. REST `POST /cookies/{name}/test` giờ 2 mức: Backend (định dạng/hết hạn) + Agent
+  (THẬT: hiệu lực/đăng nhập). Status: valid | loaded | expired | invalid | missing |
+  permission_denied | authentication_failed. Per-platform `test_url` (tuỳ chọn, config-driven).
+
+#### Added — Auto-detect, Stats, Logs, UI
+- `CookieService.detect_reloads()`: phát hiện file cookie MỚI/đổi (mtime) → log **Cookie.Reloaded**
+  (auto-detect, KHÔNG cần restart Agent — plugin đọc cookie tươi mỗi lần tải). Gọi ở GET /cookies.
+- Stats: `downloads_by_platform` (đếm video đã tải theo nền tảng — config-driven). Logs granular:
+  Cookie.Valid/Invalid/Expired/Missing/AuthenticationFailed/Reloaded/Test.Success/Test.Failed
+  (KHÔNG log nội dung/session).
+- FE CookieManager: ô **Test URL** mỗi nền tảng; badge nguồn test **Agent (thật)/Backend**; status
+  mới Valid/Authentication Failed; **panel hướng dẫn** xuất cookie khi thiếu (login → extension
+  Get cookies.txt LOCALLY → export → đặt vào .secrets). Statistics: khối "Video đã tải theo nền tảng".
+
+#### Security
+- `.secrets/` (cookie + config) trong `.gitignore` (đã `git check-ignore`). Web/Backend chỉ lưu
+  ĐƯỜNG DẪN; chỉ Agent đọc nội dung; KHÔNG log/commit nội dung cookie.
+
+#### Verified (LIVE, THẬT, không mock)
+- **Agent test THẬT**: TikTok (no file) → missing (backend, agent skip); YouTube (file + test_url)
+  → Agent chạy `yt-dlp --simulate` thật với cookie → **valid · source=agent** (browser badge
+  "Agent (thật)"). Bad URL → invalid. **Download dùng cookie**: tải `Me at the zoo.mp4` (475KB
+  THẬT) vào `C:\Users\PC\Videos\video gốc\` — **Cookie.Loaded(YouTube)** (dùng cookie từ lần đầu),
+  `downloads_with_cookie=1`, `downloads_by_platform={TikTok:15,Facebook:5,YouTube:1}`.
+  **Cookie.Reloaded** kích hoạt khi đổi file (auto-detect). Browser 6 trang 0 lỗi console.
+  Backend ruff+pytest 65/1skip; Agent ruff+pytest 15; FE lint+build ✅.
+- **⚠️ TikTok auth thật**: cần cookie ĐĂNG NHẬP TikTok của user (xuất bằng extension — App-Bound
+  Encryption chặn trích tự động trên máy này). Cơ chế ĐÃ chứng minh end-to-end qua YouTube; TikTok
+  sẽ chạy y hệt khi có `tiktok.cookies.txt` hợp lệ. KHÔNG mock cookie TikTok.
+
 ### VERIFY LIVE Output Path + Output Path absolute (2026-06-25)
 > Hoàn tất các bước verify LIVE còn lại của tính năng Output Path (KHÔNG upload). Additive —
 > KHÔNG đổi engine/queue/agent-core/route/theme/DB.

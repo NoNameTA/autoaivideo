@@ -9,7 +9,7 @@ import platform
 
 import websockets
 
-from agent import __version__
+from agent import __version__, cookie_test
 from agent.adapter_registry import capabilities
 from agent.cloud_rpc import CredentialRpc
 from agent.config import AgentSettings
@@ -116,6 +116,22 @@ async def _handle_fs(ws, watcher: FolderWatcher, data: dict) -> None:
         )
 
 
+async def _handle_cookie(ws, data: dict) -> None:
+    """RPC cookie.request → test cookie THẬT trên Agent (Agent là nơi duy nhất đọc cookie)."""
+    req_id = data.get("request_id")
+    params = data.get("params", {}) or {}
+    try:
+        result = await cookie_test.test(params)
+        await _send(ws, "cookie.response", {"request_id": req_id, "ok": True, "result": result})
+    except Exception as e:  # noqa: BLE001 - không lộ nội dung cookie
+        await _send(
+            ws,
+            "cookie.response",
+            {"request_id": req_id, "ok": False,
+             "error": {"code": "COOKIE_ERROR", "message": type(e).__name__}},
+        )
+
+
 async def _session(settings: AgentSettings) -> None:
     url = f"{settings.backend_ws_url}?token={settings.agent_token}"
     loop = asyncio.get_event_loop()
@@ -162,6 +178,8 @@ async def _session(settings: AgentSettings) -> None:
                         log.info("Allowed Folders=%s watch=%s", allowed, watcher.watched)
                 elif mtype == "fs.request":
                     asyncio.create_task(_handle_fs(ws, watcher, data))
+                elif mtype == "cookie.request":
+                    asyncio.create_task(_handle_cookie(ws, data))
         finally:
             hb.cancel()
             coalescer.cancel()

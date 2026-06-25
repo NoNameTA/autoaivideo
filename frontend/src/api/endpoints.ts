@@ -84,7 +84,7 @@ export const endpoints = {
   saveCookies: (data: {
     enabled: boolean;
     cookie_dir: string;
-    platforms: { name: string; hosts: string[]; cookie_file: string }[];
+    platforms: { name: string; hosts: string[]; cookie_file: string; test_url?: string }[];
   }) => http.put<CookieConfig>("/api/v1/cookies", data),
   testCookie: (name: string) =>
     http.post<CookieTestResult>(`/api/v1/cookies/${encodeURIComponent(name)}/test`),

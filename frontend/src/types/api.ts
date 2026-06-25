@@ -193,6 +193,7 @@ export interface CookieStats {
   expired: number;
   downloads_with_cookie: number;
   downloads_without_cookie: number;
+  downloads_by_platform: Record<string, number>;
 }
 
 // Chỉnh sửa + Export (ffmpeg biến thể / BVS) — KHÔNG upload, video lưu trên máy.
@@ -218,6 +219,7 @@ export interface CookiePlatform {
   name: string;
   hosts: string[];
   cookie_file: string;
+  test_url?: string; // URL video tuỳ chọn để Agent test cookie THẬT (live)
   status?: string; // loaded | missing
   last_updated?: string;
 }
@@ -230,9 +232,12 @@ export interface CookieConfig {
 }
 
 export interface CookieTestResult {
-  status: string; // loaded | expired | invalid | missing | permission_denied
+  // valid | loaded | expired | invalid | missing | permission_denied | authentication_failed
+  status: string;
   message: string;
   expires?: string;
+  source?: "agent" | "backend"; // agent = test THẬT trên Desktop Agent
+  cookies?: number;
 }
 
 export interface Stats {

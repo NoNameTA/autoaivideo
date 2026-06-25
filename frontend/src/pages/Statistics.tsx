@@ -273,6 +273,16 @@ function Body({ data }: { data: Stats }) {
           <Kpi label="Tải DÙNG cookie" value={String(data.cookies.downloads_with_cookie)} />
           <Kpi label="Tải KHÔNG cookie" value={String(data.cookies.downloads_without_cookie)} />
         </div>
+        {Object.keys(data.cookies.downloads_by_platform ?? {}).length > 0 && (
+          <div className="mt-3">
+            <div className="mb-2 text-xs font-semibold text-muted">Video đã tải theo nền tảng</div>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+              {Object.entries(data.cookies.downloads_by_platform).map(([name, n]) => (
+                <Kpi key={name} label={`${name} Downloads`} value={String(n)} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
+from app.api.ws.cookie_rpc import cookie_rpc
 from app.api.ws.fs_rpc import fs_rpc
 from app.api.ws.manager import envelope, manager
 from app.core.config import get_settings
@@ -141,6 +142,13 @@ async def ws_agent(websocket: WebSocket, token: str | None = Query(default=None)
                 await _handle_credential_request(websocket, agent_id, data)
             elif mtype == "fs.response":
                 fs_rpc.resolve(
+                    data.get("request_id"),
+                    bool(data.get("ok")),
+                    data.get("result"),
+                    data.get("error"),
+                )
+            elif mtype == "cookie.response":
+                cookie_rpc.resolve(
                     data.get("request_id"),
                     bool(data.get("ok")),
                     data.get("result"),

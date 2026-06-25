@@ -72,6 +72,8 @@ class CookieService:
                         str(h).strip().lower() for h in (p.get("hosts") or []) if str(h).strip()
                     ],
                     "cookie_file": str(p.get("cookie_file", "")).strip(),
+                    # test_url (tuỳ chọn): URL video để Agent test cookie THẬT (live --simulate).
+                    "test_url": str(p.get("test_url", "")).strip(),
                 }
                 for p in (cfg.get("platforms") or [])
                 if str(p.get("name", "")).strip()
@@ -191,3 +193,46 @@ class CookieService:
             if full and full.is_file():
                 entries.append({"hosts": p.get("hosts", []), "path": str(full)})
         return {"enabled": True, "entries": entries}
+
+    # ----- Agent REAL test (Desktop Agent là nơi DUY NHẤT đọc nội dung cookie) -----
+    @staticmethod
+    def test_params(name: str) -> dict | None:
+        """Tham số gửi xuống Agent để test cookie THẬT: {cookie_path tuyệt đối, hosts, test_url}."""
+        cfg = CookieService.load()
+        p = CookieService._platform(cfg, name)
+        if p is None:
+            return None
+        cookie_dir = cfg.get("cookie_dir") or _DEFAULT_DIR
+        full = CookieService._resolve(cookie_dir, p.get("cookie_file", ""))
+        if not full:
+            return None
+        return {
+            "cookie_path": str(full),
+            "hosts": p.get("hosts", []),
+            "test_url": (p.get("test_url") or "").strip(),
+        }
+
+    # ----- Auto-detect: phát hiện file cookie MỚI/đổi (không cần restart Agent) -----
+    # Cache mtime RAM (reset khi restart backend). Lần đầu thấy = Loaded; đổi mtime = Reloaded.
+    _mtimes: dict[str, float] = {}
+
+    @staticmethod
+    def detect_reloads() -> list[dict]:
+        """Nền tảng có file cookie MỚI/ĐỔI kể từ lần kiểm trước (để log Cookie.Reloaded)."""
+        cfg = CookieService.load()
+        cookie_dir = cfg.get("cookie_dir") or _DEFAULT_DIR
+        changed: list[dict] = []
+        for p in cfg.get("platforms", []):
+            full = CookieService._resolve(cookie_dir, p.get("cookie_file", ""))
+            if not full or not full.is_file():
+                continue
+            key = str(full)
+            try:
+                mt = full.stat().st_mtime
+            except OSError:
+                continue
+            prev = CookieService._mtimes.get(key)
+            if prev is not None and mt > prev:
+                changed.append({"name": p.get("name"), "hosts": p.get("hosts", [])})
+            CookieService._mtimes[key] = mt
+        return changed
