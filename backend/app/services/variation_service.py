@@ -156,7 +156,13 @@ class VariationService:
             None,
         )
         if vid is None:
-            raise ValidationAppError("Không tìm thấy file video đã tải cho item này")
+            if assets:  # có asset nhưng là audio/không phải video
+                raise ValidationAppError(
+                    "Video này tải về CHỈ CÓ AUDIO — chọn item, bấm Run Workflow tải lại rồi chỉnh."
+                )
+            raise ValidationAppError(
+                "Item này chưa có file video (hoặc tải ở phiên cũ) — Run Workflow tải lại rồi chỉnh."
+            )
         return vid
 
     @staticmethod

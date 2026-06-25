@@ -56,11 +56,15 @@ class YtDlpAdapter(Adapter):
             raise PermanentError("Thiếu 'url' (trong inputs hoặc config)")
         template = ctx.config.get("output_template", "%(title).80s.%(ext)s")
         extra = ctx.config.get("args", []) or []
+        # Mặc định LUÔN ưu tiên VIDEO (tránh tải nhầm audio-only) -> mp4 ghép video+audio.
+        # Nếu người dùng tự đặt -f/--format thì tôn trọng, không chèn.
+        has_fmt = any(a in ("-f", "--format") for a in extra)
+        fmt = [] if has_fmt else ["-f", "bv*+ba/b", "--merge-output-format", "mp4"]
         cmd = [
             sys.executable, "-m", "yt_dlp",
             "--newline", "--no-color",
             "--progress-template", _PROG_TEMPLATE,
-            *extra, "-o", template, url,
+            *fmt, *extra, "-o", template, url,
         ]
         proc = await asyncio.create_subprocess_exec(
             *cmd,
