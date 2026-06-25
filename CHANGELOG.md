@@ -18,13 +18,20 @@
   Log `Video.BvsEdit`.
 - **FE**: nút **"🎞️ Chỉnh bằng BVS"** cạnh "🎬 Tạo biến thể" (áp video done đã chọn).
 
+#### DIRECT mode — Agent TỰ mở BVS, không cần web (cập nhật)
+- Plugin `bulkauto` mặc định chạy **DIRECT**: import **lõi điều khiển stdlib của BulkAuto**
+  (`automation.workflow.AffiliateReelsOrchestrator` ở `C:\BulkAuto`) → **tự mở BVS** + lái CDP +
+  render NGAY TRONG Agent. **KHÔNG cần chạy `web.py :8787` thủ công.** KHÔNG sửa app BVS (CDP ngoài).
+  Có lock (BVS 1 video/lúc), progress qua logging-handler (giữ WS sống). Tuỳ chọn HTTP nếu truyền
+  `bulkauto_url`.
+- **LIVE PROVEN (direct):** bấm "Chỉnh bằng BVS" → **Agent tự mở BVS** (5 tiến trình Electron) →
+  render → thu asset **`bvs_..._reels.mp4` 8.48MB, 1080×1918**, job **completed**, không lỗi WS.
+
 #### Verified (LIVE, BVS render thật)
-- Tải Big Buck Bunny → "Chỉnh bằng BVS" → chuỗi **web → agent → BulkAuto → BVS (CDP)** chạy thật:
-  BVS render `..._reels.mp4` (style black_white_bg, speed 1.26) → agent thu asset
-  **`bvs_..._reels.mp4` 7.3MB**, job **completed**. Fix bug: ép progress dict→int (tránh treo job);
+- chuỗi **web → agent → BVS (CDP)** chạy thật. Fix bug: ép progress dict→int (tránh treo job);
   BVS bận → retry. ruff ✅ pytest 60/1skip; FE lint+build ✅; không lỗi console.
-- **Điều kiện tiên quyết:** mở **BulkAuto agent** (`python web.py` ở C:\BulkAuto → `:8787`) + BVS đã
-  cài (chạy `BAM_1_LAN_CAI_DAT_CHO_NHAN_VIEN.bat`). Cùng máy.
+- **Điều kiện tiên quyết:** **BVS đã cài** (chạy `BAM_1_LAN_CAI_DAT_CHO_NHAN_VIEN.bat` 1 lần) +
+  mã lõi BulkAuto ở `C:\BulkAuto`. Agent tự lo việc mở BVS. Cùng máy.
 
 ### Video Variations — 1 video → N bản chỉnh sửa bằng ffmpeg THẬT (2026-06-24)
 > Từ 1 video đã tải, tạo N biến thể tự động bằng ffmpeg (spin tránh trùng + đổi tỉ lệ + caption/
