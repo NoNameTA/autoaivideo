@@ -44,6 +44,7 @@ class StatsService:
 
         video = await StatsService._video(session)
         download = await StatsService._download(session)
+        cookies = await StatsService._cookies(session)
 
         return {
             "jobs_total": jobs_total,
@@ -57,7 +58,43 @@ class StatsService:
             "adapters": adapters,
             "video": video,
             "download": download,
+            "cookies": cookies,
             "generated_at": utcnow(),
+        }
+
+    @staticmethod
+    async def _cookies(session: AsyncSession) -> dict:
+        """Metric Cookie Manager (status-only, KHÔNG đọc/log nội dung cookie)."""
+        from app.models.event import Event
+        from app.services.cookie_service import CookieService
+
+        cfg = CookieService.load()
+        sts = CookieService.status(cfg)
+        loaded = sum(1 for s in sts if s["status"] == "loaded")
+        valid = expired = 0
+        for s in sts:
+            if s["status"] == "loaded":
+                t = CookieService.test(s["name"])
+                if t["status"] == "loaded":
+                    valid += 1
+                elif t["status"] == "expired":
+                    expired += 1
+        rows = (
+            await session.execute(
+                select(Event.type, Event.data).where(
+                    Event.type.in_(["Cookie.Loaded", "Cookie.Missing"])
+                )
+            )
+        ).all()
+        with_cookie = sum((d or {}).get("count", 1) for t, d in rows if t == "Cookie.Loaded")
+        without_cookie = sum((d or {}).get("count", 1) for t, d in rows if t == "Cookie.Missing")
+        return {
+            "configured": len(sts),
+            "loaded": loaded,
+            "valid": valid,
+            "expired": expired,
+            "downloads_with_cookie": with_cookie,
+            "downloads_without_cookie": without_cookie,
         }
 
     @staticmethod

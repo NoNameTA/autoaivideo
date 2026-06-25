@@ -118,6 +118,22 @@ export function useLogs(q: LogQuery) {
   });
 }
 
+export function useCookies() {
+  return useQuery({ queryKey: ["cookies"], queryFn: endpoints.getCookies });
+}
+
+export function useSaveCookies() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.saveCookies,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["cookies"] }),
+  });
+}
+
+export function useTestCookie() {
+  return useMutation({ mutationFn: (name: string) => endpoints.testCookie(name) });
+}
+
 export function useStats(refetchMs?: number) {
   return useQuery({
     queryKey: ["stats"],

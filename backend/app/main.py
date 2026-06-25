@@ -14,6 +14,7 @@ from app.api.rest import (
     agents,
     batches,
     connections,
+    cookies,
     credentials,
     external_apps,
     fs,
@@ -97,6 +98,7 @@ def create_app() -> FastAPI:
     app.include_router(external_apps.router)
     app.include_router(credentials.router)
     app.include_router(connections.router)
+    app.include_router(cookies.router)
     app.include_router(video_sources.router)
     app.include_router(fs.router)
     app.include_router(ws_dashboard.router)

@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { ApiError } from "../api/client";
 import { endpoints } from "../api/endpoints";
+import { CookieManager } from "../components/CookieManager";
 import { Modal } from "../components/Modal";
 import { SectionPanel } from "../components/SectionPanel";
 import { useSettingsStore } from "../store/settings";
@@ -168,6 +169,12 @@ export function Settings() {
             <option value="light">Sáng</option>
           </select>
         </label>
+      </div>
+
+      {/* ----- Download Settings ----- */}
+      <div className="mt-6 max-w-3xl">
+        <h2 className="mb-2 text-sm font-semibold text-text">Download Settings</h2>
+        <CookieManager />
       </div>
 
       {/* ----- Hộp thoại nhập mã khóa ----- */}

@@ -237,6 +237,22 @@ function Body({ data }: { data: Stats }) {
         </div>
       </div>
 
+      <div>
+        <h2 className="mb-3 text-sm font-semibold text-text">Cookie Manager</h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <Kpi label="Cấu hình" value={String(data.cookies.configured)} />
+          <Kpi label="Cookies Loaded" value={String(data.cookies.loaded)} accent="var(--info)" />
+          <Kpi label="Cookies Valid" value={String(data.cookies.valid)} accent="var(--success)" />
+          <Kpi
+            label="Cookies Expired"
+            value={String(data.cookies.expired)}
+            accent={data.cookies.expired ? "var(--danger)" : undefined}
+          />
+          <Kpi label="Tải DÙNG cookie" value={String(data.cookies.downloads_with_cookie)} />
+          <Kpi label="Tải KHÔNG cookie" value={String(data.cookies.downloads_without_cookie)} />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <h2 className="mb-3 text-sm font-semibold text-text">Job theo trạng thái</h2>

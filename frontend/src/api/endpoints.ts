@@ -6,6 +6,8 @@ import type {
   Connection,
   ConnectionCreate,
   ConnectionTestResult,
+  CookieConfig,
+  CookieTestResult,
   Credential,
   CredentialCreate,
   ExternalApp,
@@ -75,6 +77,16 @@ export const endpoints = {
   },
 
   getStats: () => http.get<Stats>("/api/v1/stats"),
+
+  // Cookie Manager (đa nền tảng) — metadata only, không lưu/đọc nội dung cookie ở web.
+  getCookies: () => http.get<CookieConfig>("/api/v1/cookies"),
+  saveCookies: (data: {
+    enabled: boolean;
+    cookie_dir: string;
+    platforms: { name: string; hosts: string[]; cookie_file: string }[];
+  }) => http.put<CookieConfig>("/api/v1/cookies", data),
+  testCookie: (name: string) =>
+    http.post<CookieTestResult>(`/api/v1/cookies/${encodeURIComponent(name)}/test`),
 
   // Video Sources (SPEC 02 §4.1)
   listVideoSources: () => http.get<VideoSource[]>("/api/v1/video-sources"),

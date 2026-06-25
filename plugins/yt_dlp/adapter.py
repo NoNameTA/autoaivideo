@@ -8,6 +8,7 @@ Chỉ sửa trong PLUGIN (không chạm Desktop Agent Core).
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 import shutil
 import sys
@@ -28,10 +29,23 @@ _DEFAULT_COOKIE_BROWSER = "chrome"
 _DEFAULT_COOKIE_FILE = r"C:\AIVideoPlatform\.secrets\cookies.txt"
 
 
-def _cookie_args(ctx: StepContext, browser: str) -> list[str]:
-    """Ưu tiên file cookies.txt (không bị khoá khi Chrome mở); không có thì đọc từ trình duyệt."""
-    import os
+def _select_cookie(ctx: StepContext, url: str) -> str | None:
+    """Cookie Manager: chọn cookie file theo host URL (config-driven, không hard-code nền tảng)."""
+    cm = ctx.inputs.get("cookies") or ctx.config.get("cookies") or {}
+    if not cm.get("enabled"):
+        return None
+    host = (url or "").lower()
+    for e in cm.get("entries", []):
+        if any(h and h in host for h in e.get("hosts", [])):
+            path = e.get("path")
+            if path and os.path.isfile(path):
+                return path
+    return None
 
+
+def _cookie_args(ctx: StepContext, browser: str) -> list[str]:
+    """Fallback (khi audio-only mà chưa có cookie từ Cookie Manager): file .secrets/cookies.txt
+    hoặc đọc trực tiếp từ trình duyệt."""
     f = ctx.config.get("cookies_file") or ctx.inputs.get("cookies_file") or _DEFAULT_COOKIE_FILE
     if f and os.path.isfile(f):
         return ["--cookies", f]
@@ -97,14 +111,24 @@ class YtDlpAdapter(Adapter):
         ]
         out_args = ["-o", template, url]
 
-        # Lần 1: tải bình thường (tôn trọng -f/cookies của người dùng nếu có).
-        code, tail = await self._attempt(ctx, [*base, *fmt, *extra, *out_args], ctx.output_dir)
+        # Cookie Manager: nền tảng nào CÓ cookie file -> TỰ DÙNG ngay lần 1 (theo host URL).
+        selected = None if user_cookie else _select_cookie(ctx, url)
+        cookie1 = ["--cookies", selected] if selected else []
+        if selected:
+            ctx.progress(0, "Dùng cookie cho nền tảng này…")
+
+        code, tail = await self._attempt(
+            ctx, [*base, *fmt, *cookie1, *extra, *out_args], ctx.output_dir
+        )
         if code != 0:
             raise PermanentError(f"yt-dlp lỗi (rc={code}): {' '.join(tail[-5:])[-400:]}")
 
         out = _find_media(ctx.output_dir)
-        # Audio-only + có cookie fallback + người dùng chưa tự đặt cookie -> thử lại bằng cookie.
-        if out and out.suffix.lower() in _AUDIO_EXT and cookie_browser and not user_cookie:
+        # Audio-only mà CHƯA dùng cookie -> thử fallback (.secrets/cookies.txt hoặc trình duyệt).
+        if (
+            out and out.suffix.lower() in _AUDIO_EXT
+            and not selected and not user_cookie and cookie_browser
+        ):
             await self._cookie_retry(ctx, base, fmt, extra, out_args, cookie_browser, out)
 
         ctx.progress(100, "hoàn tất")

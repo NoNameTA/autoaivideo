@@ -186,6 +186,37 @@ export interface DownloadStats {
   avg_speed_bps: number;
 }
 
+export interface CookieStats {
+  configured: number;
+  loaded: number;
+  valid: number;
+  expired: number;
+  downloads_with_cookie: number;
+  downloads_without_cookie: number;
+}
+
+// Cookie Manager (đa nền tảng)
+export interface CookiePlatform {
+  name: string;
+  hosts: string[];
+  cookie_file: string;
+  status?: string; // loaded | missing
+  last_updated?: string;
+}
+
+export interface CookieConfig {
+  enabled: boolean;
+  cookie_dir: string;
+  platforms: CookiePlatform[];
+  cookie_files: string[]; // file .txt trong cookie_dir (cho Browse)
+}
+
+export interface CookieTestResult {
+  status: string; // loaded | expired | invalid | missing | permission_denied
+  message: string;
+  expires?: string;
+}
+
 export interface Stats {
   jobs_total: number;
   jobs_by_status: Record<string, number>;
@@ -198,6 +229,7 @@ export interface Stats {
   adapters: AdapterStat[];
   video: VideoStats;
   download: DownloadStats;
+  cookies: CookieStats;
   generated_at: string;
 }
 

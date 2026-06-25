@@ -4,6 +4,41 @@
 
 ## [Unreleased]
 
+### Cookie Manager (đa nền tảng) — Agent tự dùng cookie khi tải video (2026-06-25)
+> Bổ sung Cookie Manager: tải video TikTok/Facebook/YouTube/Instagram/X… không phụ thuộc trình
+> duyệt đang mở. **Additive** — KHÔNG đổi engine/queue/agent-core/DB schema. Adapter Framework:
+> thêm nền tảng = thêm 1 dòng config trên web, KHÔNG sửa code.
+
+#### Kiến trúc
+- **Website** chỉ quản lý cấu hình. **Backend** quản lý METADATA (đường dẫn). **Plugin/Agent** đọc
+  & dùng nội dung cookie. Website/Backend KHÔNG lưu/đọc/log/commit NỘI DUNG cookie.
+
+#### Added — Backend
+- `services/cookie_service.py`: config 1 file JSON `<cookie_dir>/cookies.config.json` (cookie_dir
+  mặc định `C:\AIVideoPlatform\.secrets`). Platform `{name, hosts[], cookie_file}`. `status` (stat
+  metadata), `test` (Loaded/Expired/Invalid/Missing/PermissionDenied + expires — parse Netscape,
+  **status-only**), `cookie_map` (nhúng job inputs), `platform_of_url`.
+- REST `app/api/rest/cookies.py`: GET/PUT `/api/v1/cookies` + POST `/{name}/test` + list file .txt
+  (Browse). `VideoSourceService.run` nhúng cookie map vào job inputs + log Cookie.Loaded/Missing.
+- Logs: `Cookie.Loaded/Missing/Test.Success/Test.Failed` (KHÔNG log nội dung). Stats: khối cookie
+  (configured/loaded/valid/expired + downloads with/without cookie).
+
+#### Added — Plugin/Frontend
+- yt-dlp plugin: đọc cookie map từ inputs → **tự chọn cookie theo host URL** → `--cookies` nếu có
+  (tự dùng khi CÓ file); fallback nếu thiếu. Không hard-code nền tảng.
+- FE: Settings → **Download Settings → Cookie Manager** (Enable, Cookie Directory, mỗi nền tảng:
+  file/Browse-datalist/status/last-updated/Test/expires, thêm "Khác…"). Statistics: khối Cookie.
+
+#### Security
+- `.secrets/` đã trong `.gitignore` (cookie + config KHÔNG commit, đã kiểm tra `git check-ignore`).
+
+#### Verified (LIVE, status-only, không mock)
+- Test thật: tạo file Netscape → TikTok **Loaded** (expires 2026-07-06), YouTube **Expired**,
+  Facebook **Missing**. PUT enable → cookie_map nhúng đúng (TikTok URL → dùng tiktok.cookies.txt).
+  Download BBB (không khớp nền tảng) vẫn completed (fallback). Browser: Cookie Manager 3 nền tảng,
+  nút Test hiện Loaded/Expired; Statistics khối Cookie (Loaded 2/Valid 1/Expired 1). ruff ✅
+  pytest 60/1skip; FE lint+build ✅; không lỗi console.
+
 ### Tích hợp Bulk Video Studio — web chỉnh video bằng bộ công cụ của BVS (2026-06-24)
 > Web AI Video Platform có thể chỉnh video bằng **bộ công cụ của app Bulk Video Studio** (reels
 > 1080×1920, logo/intro/outro/nhạc, phụ đề whisper, speed) — **bổ sung** cạnh biến thể ffmpeg.

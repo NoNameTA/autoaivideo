@@ -35,6 +35,17 @@ class DownloadStats(BaseModel):
     avg_speed_bps: float
 
 
+class CookieStats(BaseModel):
+    """Metric Cookie Manager (status-only)."""
+
+    configured: int
+    loaded: int
+    valid: int
+    expired: int
+    downloads_with_cookie: int
+    downloads_without_cookie: int
+
+
 class StatsOut(BaseModel):
     """Thống kê vận hành (SPEC 02 §7)."""
 
@@ -49,4 +60,5 @@ class StatsOut(BaseModel):
     adapters: list[AdapterStat]
     video: VideoStats
     download: DownloadStats
+    cookies: CookieStats
     generated_at: datetime

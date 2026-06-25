@@ -531,12 +531,21 @@ class VideoSourceService:
             raise ValidationAppError("Không có video nào được chọn để chạy")
 
         project_id = req.project_id or await VideoSourceService._default_project_id(session)
-        inputs = [{"url": it.url, "title": it.title or ""} for it in items]
+        # Cookie Manager: nhúng map cookie (đường dẫn) vào job inputs để plugin tự chọn theo host.
+        from app.services.cookie_service import CookieService
+
+        cmap = CookieService.cookie_map()
+        inputs = [
+            {"url": it.url, "title": it.title or "", "cookies": cmap} for it in items
+        ]
         batch = await BatchService.create(
             session,
             project_id,
             BatchCreate(name=f"{src.name} ({len(items)})", inputs=inputs, pipeline=req.pipeline),
         )
+        # Log Cookie.Loaded/Missing (metadata, KHÔNG nội dung) theo nền tảng của từng URL.
+        if cmap.get("enabled"):
+            await VideoSourceService._log_cookie_usage(src.id, items, cmap)
         # Map job theo seq (BatchService tạo job seq=index inputs) -> link vào item.
         jobs = list(
             (
@@ -556,3 +565,29 @@ class VideoSourceService:
 
             await ensure_writeback_columns(session, src)
         return batch.id, len(jobs)
+
+    @staticmethod
+    async def _log_cookie_usage(source_id: str, items: list, cmap: dict) -> None:
+        """Log Cookie.Loaded/Missing theo nền tảng (gộp). KHÔNG log nội dung cookie."""
+        from app.services.cookie_service import CookieService
+
+        cfg = CookieService.load()
+        host_has = {h for e in cmap.get("entries", []) for h in e.get("hosts", [])}
+        loaded: dict[str, int] = {}
+        missing: dict[str, int] = {}
+        for it in items:
+            p = CookieService.platform_of_url(it.url, cfg)
+            if not p:
+                continue  # nền tảng không cần cookie
+            bucket = loaded if any(h in host_has for h in p.get("hosts", [])) else missing
+            bucket[p["name"]] = bucket.get(p["name"], 0) + 1
+        for name, n in loaded.items():
+            await EventService.record(
+                entity_type="video_source", entity_id=source_id,
+                type="Cookie.Loaded", data={"platform": name, "count": n},
+            )
+        for name, n in missing.items():
+            await EventService.record(
+                entity_type="video_source", entity_id=source_id,
+                type="Cookie.Missing", data={"platform": name, "count": n}, level="warn",
+            )
