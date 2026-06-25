@@ -195,6 +195,24 @@ export interface CookieStats {
   downloads_without_cookie: number;
 }
 
+// Chỉnh sửa + Export (ffmpeg biến thể / BVS) — KHÔNG upload, video lưu trên máy.
+export interface EditStats {
+  edits_total: number;
+  edits_success: number;
+  edits_failed: number;
+  exported_total: number;
+  export_bytes: number;
+  edit_seconds: number;
+  avg_edit_seconds: number;
+}
+
+// Output Folders (KHÔNG upload — video lưu trên máy Windows).
+export interface FolderSettings {
+  download_folder: string;
+  export_folder: string;
+  temp_folder: string;
+}
+
 // Cookie Manager (đa nền tảng)
 export interface CookiePlatform {
   name: string;
@@ -229,6 +247,7 @@ export interface Stats {
   adapters: AdapterStat[];
   video: VideoStats;
   download: DownloadStats;
+  edit: EditStats;
   cookies: CookieStats;
   generated_at: string;
 }
@@ -256,6 +275,10 @@ export interface VideoSourceItem {
   sheet_row?: number | null;
   video_id?: string | null;
   job_id: string | null;
+  // Output Path (video trên máy sau khi tải/Export) — KHÔNG upload, KHÔNG URL.
+  output_path?: string | null;
+  output_folder?: string | null;
+  output_filename?: string | null;
   created_at: string;
   updated_at: string;
 }

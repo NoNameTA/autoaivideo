@@ -82,6 +82,24 @@ def _find_media(folder: Path) -> Path | None:
     return max(files, key=lambda p: p.stat().st_size) if files else None
 
 
+def _copy_to_dest(ctx: StepContext, media: Path | None) -> None:
+    """Copy video tải về vào Output Folder (dest_folder ở inputs) — KHÔNG upload, lưu cục bộ.
+
+    Giữ NGUYÊN file trong output_dir (để Agent thu asset như cũ) + copy thêm bản vào thư mục đích
+    người dùng cấu hình. dest_folder do Backend nhúng từ Settings (không hard-code).
+    """
+    dest = ctx.inputs.get("dest_folder")
+    if not dest or media is None:
+        return
+    try:
+        dest_dir = Path(dest)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(media, dest_dir / media.name)
+        ctx.progress(0, f"Đã lưu vào {dest}")
+    except OSError as e:
+        raise PermanentError(f"Không lưu được video vào Output Folder '{dest}': {e}") from None
+
+
 class YtDlpAdapter(Adapter):
     capability = "media.download"
 
@@ -131,6 +149,8 @@ class YtDlpAdapter(Adapter):
         ):
             await self._cookie_retry(ctx, base, fmt, extra, out_args, cookie_browser, out)
 
+        # Output Folder: lưu video tải về vào thư mục đích cấu hình ở Settings (KHÔNG upload).
+        _copy_to_dest(ctx, _find_media(ctx.output_dir))
         ctx.progress(100, "hoàn tất")
 
     async def _cookie_retry(

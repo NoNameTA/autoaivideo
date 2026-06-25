@@ -44,6 +44,7 @@ class StatsService:
 
         video = await StatsService._video(session)
         download = await StatsService._download(session)
+        edit = await StatsService._edit(session)
         cookies = await StatsService._cookies(session)
 
         return {
@@ -58,8 +59,51 @@ class StatsService:
             "adapters": adapters,
             "video": video,
             "download": download,
+            "edit": edit,
             "cookies": cookies,
             "generated_at": utcnow(),
+        }
+
+    # Adapter chỉnh sửa/Export (video.ffmpeg = biến thể ffmpeg, video.bulkauto = BVS).
+    _EDIT_ADAPTERS = ("video.ffmpeg", "video.bulkauto")
+
+    @staticmethod
+    async def _edit(session: AsyncSession) -> dict:
+        """Metric chỉnh sửa + Export THẬT (ffmpeg/BVS): lượt, thành công/lỗi, dung lượng xuất."""
+        rows = (
+            await session.execute(
+                select(Step.status, Step.started_at, Step.finished_at).where(
+                    Step.adapter.in_(StatsService._EDIT_ADAPTERS)
+                )
+            )
+        ).all()
+        total = len(rows)
+        success = failed = 0
+        secs = 0.0
+        for status, started_at, finished_at in rows:
+            s = str(status)
+            if s == StepStatus.completed.value:
+                success += 1
+            elif s == StepStatus.failed.value:
+                failed += 1
+            if started_at is not None and finished_at is not None:
+                secs += max((finished_at - started_at).total_seconds(), 0.0)
+        byte_rows = (
+            await session.execute(
+                select(Asset.size)
+                .join(Step, Asset.step_id == Step.id)
+                .where(Step.adapter.in_(StatsService._EDIT_ADAPTERS))
+            )
+        ).scalars().all()
+        export_bytes = int(sum(b or 0 for b in byte_rows))
+        return {
+            "edits_total": total,
+            "edits_success": success,
+            "edits_failed": failed,
+            "exported_total": success,
+            "export_bytes": export_bytes,
+            "edit_seconds": round(secs, 2),
+            "avg_edit_seconds": round(secs / success, 2) if success > 0 else 0.0,
         }
 
     @staticmethod

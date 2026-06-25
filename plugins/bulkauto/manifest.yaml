@@ -7,4 +7,5 @@ license: Proprietary-Free
 source_url: https://github.com/TranQA28/bulk-video-studio-automation
 automation_allowed: true
 entrypoint: adapter:BulkAutoAdapter
+config_schema: config.schema.json
 requires_sdk: "1.0.0"

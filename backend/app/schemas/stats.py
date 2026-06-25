@@ -35,6 +35,18 @@ class DownloadStats(BaseModel):
     avg_speed_bps: float
 
 
+class EditStats(BaseModel):
+    """Metric chỉnh sửa + Export (video.ffmpeg / video.bulkauto) — KHÔNG upload."""
+
+    edits_total: int
+    edits_success: int
+    edits_failed: int
+    exported_total: int
+    export_bytes: int
+    edit_seconds: float
+    avg_edit_seconds: float
+
+
 class CookieStats(BaseModel):
     """Metric Cookie Manager (status-only)."""
 
@@ -60,5 +72,6 @@ class StatsOut(BaseModel):
     adapters: list[AdapterStat]
     video: VideoStats
     download: DownloadStats
+    edit: EditStats
     cookies: CookieStats
     generated_at: datetime

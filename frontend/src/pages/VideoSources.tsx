@@ -613,6 +613,7 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
                 <th className="py-2 pr-3">Tên</th>
                 <th className="py-2 pr-3">Link</th>
                 <th className="py-2 pr-3">Trạng thái</th>
+                <th className="py-2 pr-3">Output</th>
                 <th className="py-2 pr-3">Job</th>
                 <th className="py-2 pr-3"></th>
               </tr>
@@ -634,6 +635,14 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
                   </td>
                   <td className={`py-1.5 pr-3 text-xs ${STATUS_COLOR[it.status] ?? "text-muted"}`}>
                     {it.status}
+                  </td>
+                  <td className="py-1.5 pr-3 max-w-xs truncate font-mono text-xs text-muted"
+                    title={it.output_path ?? ""}>
+                    {it.output_filename ? (
+                      <span className="text-success">{it.output_filename}</span>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className="py-1.5 pr-3 text-xs">
                     {it.job_id ? (

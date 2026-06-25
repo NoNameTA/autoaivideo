@@ -24,6 +24,7 @@ from app.api.rest import (
     pipelines,
     plugins,
     projects,
+    settings_folders,
     stats,
     video_sources,
 )
@@ -99,6 +100,7 @@ def create_app() -> FastAPI:
     app.include_router(credentials.router)
     app.include_router(connections.router)
     app.include_router(cookies.router)
+    app.include_router(settings_folders.router)
     app.include_router(video_sources.router)
     app.include_router(fs.router)
     app.include_router(ws_dashboard.router)

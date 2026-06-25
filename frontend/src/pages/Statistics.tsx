@@ -238,6 +238,28 @@ function Body({ data }: { data: Stats }) {
       </div>
 
       <div>
+        <h2 className="mb-3 text-sm font-semibold text-text">
+          Chỉnh sửa &amp; Export (ffmpeg / BVS — lưu trên máy, KHÔNG upload)
+        </h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <Kpi label="Tổng lượt chỉnh" value={String(data.edit.edits_total)} />
+          <Kpi
+            label="Thành công"
+            value={String(data.edit.edits_success)}
+            accent="var(--success)"
+          />
+          <Kpi
+            label="Lỗi"
+            value={String(data.edit.edits_failed)}
+            accent={data.edit.edits_failed ? "var(--danger)" : undefined}
+          />
+          <Kpi label="Đã Export" value={String(data.edit.exported_total)} accent="var(--info)" />
+          <Kpi label="Dung lượng xuất" value={fmtBytes(data.edit.export_bytes)} />
+          <Kpi label="Thời gian TB" value={fmtSeconds(data.edit.avg_edit_seconds)} />
+        </div>
+      </div>
+
+      <div>
         <h2 className="mb-3 text-sm font-semibold text-text">Cookie Manager</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Kpi label="Cấu hình" value={String(data.cookies.configured)} />

@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Bulk Video Studio",
+  "properties": {
+    "bulkauto_url": {
+      "type": "string",
+      "title": "BulkAuto URL (tuỳ chọn)",
+      "description": "Bỏ trống = DIRECT (Agent tự mở BVS). Có giá trị = gọi web BulkAuto qua HTTP."
+    },
+    "bulkauto_path": {
+      "type": "string",
+      "title": "Thư mục lõi BulkAuto",
+      "description": "Mặc định C:\\BulkAuto (chứa package 'automation')."
+    },
+    "bvs_config": {
+      "type": "object",
+      "title": "Cấu hình BVS",
+      "description": "Map vào Config BulkAuto (logo/intro/outro/music folder, *_prob, speed_mode)."
+    },
+    "dest_folder": {
+      "type": "string",
+      "title": "Output Folder",
+      "description": "Thư mục lưu video đã Export trên máy (KHÔNG upload). Backend nhúng từ Settings."
+    }
+  }
+}

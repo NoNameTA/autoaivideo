@@ -42,6 +42,10 @@ class VideoSourceItemOut(BaseModel):
     sheet_row: int | None = None
     video_id: str | None = None
     job_id: str | None
+    # Output Path (video trên máy Windows sau khi tải/Export) — KHÔNG upload, KHÔNG URL.
+    output_path: str | None = None
+    output_folder: str | None = None
+    output_filename: str | None = None
     created_at: datetime
     updated_at: datetime
 

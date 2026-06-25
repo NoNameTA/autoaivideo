@@ -12,6 +12,7 @@ import type {
   CredentialCreate,
   ExternalApp,
   ExternalAppTestResult,
+  FolderSettings,
   Info,
   Job,
   JobDetail,
@@ -87,6 +88,11 @@ export const endpoints = {
   }) => http.put<CookieConfig>("/api/v1/cookies", data),
   testCookie: (name: string) =>
     http.post<CookieTestResult>(`/api/v1/cookies/${encodeURIComponent(name)}/test`),
+
+  // Output Folders (KHÔNG upload — video lưu trên máy). Download/Export/Temp.
+  getFolders: () => http.get<FolderSettings>("/api/v1/settings/folders"),
+  saveFolders: (data: FolderSettings) =>
+    http.put<FolderSettings>("/api/v1/settings/folders", data),
 
   // Video Sources (SPEC 02 §4.1)
   listVideoSources: () => http.get<VideoSource[]>("/api/v1/video-sources"),

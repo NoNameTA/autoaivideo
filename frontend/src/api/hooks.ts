@@ -134,6 +134,18 @@ export function useTestCookie() {
   return useMutation({ mutationFn: (name: string) => endpoints.testCookie(name) });
 }
 
+export function useFolders() {
+  return useQuery({ queryKey: ["output-folders"], queryFn: endpoints.getFolders });
+}
+
+export function useSaveFolders() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: endpoints.saveFolders,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["output-folders"] }),
+  });
+}
+
 export function useStats(refetchMs?: number) {
   return useQuery({
     queryKey: ["stats"],

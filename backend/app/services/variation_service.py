@@ -182,12 +182,17 @@ class VariationService:
         asset = await VariationService._source_asset(session, item)
         recipes = build_recipes(options, count, title=item.title)
 
+        # Output Folder: video Export lưu vào Export Folder (KHÔNG upload). Agent đọc qua inputs.
+        from app.services.output_settings import OutputSettings
+
+        dest_folder = OutputSettings.export_folder()
         inputs = [
             {
                 "source": asset.path,
                 "args": r["args"],
                 "output_name": r["output_name"],
                 "title": f"{(item.title or 'video')[:60]} — {r['label']}",
+                "dest_folder": dest_folder,
             }
             for r in recipes
         ]
@@ -226,7 +231,13 @@ class VariationService:
         if item is None or item.source_id != source_id:
             raise NotFoundError(f"Item '{item_id}' không thuộc nguồn này")
         asset = await VariationService._source_asset(session, item)
-        row: dict = {"source": asset.path, "title": f"BVS — {(item.title or 'video')[:60]}"}
+        from app.services.output_settings import OutputSettings
+
+        row: dict = {
+            "source": asset.path,
+            "title": f"BVS — {(item.title or 'video')[:60]}",
+            "dest_folder": OutputSettings.export_folder(),  # Export Folder (KHÔNG upload)
+        }
         if bulkauto_url:
             row["bulkauto_url"] = bulkauto_url
         if bvs_config:

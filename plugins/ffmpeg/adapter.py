@@ -53,3 +53,16 @@ class FfmpegAdapter(Adapter):
         result = await ctx.process.run(command, ctx.timeout)
         if result.code != 0:
             raise PermanentError(f"ffmpeg lỗi (rc={result.code}): {result.stderr[-500:]}")
+
+        # Output Folder: Export video đã chỉnh vào thư mục đích (dest_folder ở inputs). KHÔNG upload.
+        dest = ctx.inputs.get("dest_folder")
+        produced = Path(output_path)
+        if dest and produced.is_file():
+            try:
+                dest_dir = Path(dest)
+                dest_dir.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(produced, dest_dir / produced.name)
+            except OSError as e:
+                raise PermanentError(
+                    f"Không Export được video vào Output Folder '{dest}': {e}"
+                ) from None

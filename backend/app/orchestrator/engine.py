@@ -36,6 +36,9 @@ log = logging.getLogger("orchestrator")
 
 _TERMINAL_JOB = {JobStatus.completed, JobStatus.failed, JobStatus.cancelled}
 _DOWNLOAD_ADAPTER = "media.download"  # capability tải video (yt-dlp) — gắn log Video.Download.*
+# Capability chỉnh sửa + Export (1 step gộp edit+export): ffmpeg biến thể & BVS.
+# Gắn log Video.Edit.Start/Progress + Video.Export.End (KHÔNG upload).
+_EDIT_ADAPTERS = ("video.ffmpeg", "video.bulkauto")
 
 
 class OrchestratorEngine:
@@ -192,6 +195,13 @@ class OrchestratorEngine:
                     job_id=step.job_id,
                     url=(job.vars.get("url") if job else None),
                 )
+            if step.adapter in _EDIT_ADAPTERS:
+                await self._activity(
+                    "Video.Edit.Start",
+                    step_id=step.id,
+                    job_id=step.job_id,
+                    adapter=step.adapter,
+                )
 
     async def on_progress(
         self, step_id: str, pct: int | None, msg: str | None = None
@@ -226,6 +236,10 @@ class OrchestratorEngine:
                 if step.adapter == _DOWNLOAD_ADAPTER and (old_pct // 25) != (pct // 25):
                     await self._activity(
                         "Video.Download.Progress", job_id=job.id, step_id=step_id, pct=pct, msg=msg
+                    )
+                if step.adapter in _EDIT_ADAPTERS and (old_pct // 25) != (pct // 25):
+                    await self._activity(
+                        "Video.Edit.Progress", job_id=job.id, step_id=step_id, pct=pct, msg=msg
                     )
             if is_plugin_capability(step.adapter):
                 await self._activity(
@@ -265,6 +279,15 @@ class OrchestratorEngine:
             if step.adapter == _DOWNLOAD_ADAPTER:
                 await self._activity(
                     "Video.Download.End",
+                    step_id=step.id,
+                    job_id=step.job_id,
+                    bytes=int(sum(int(a.get("size", 0)) for a in assets)),
+                    files=len(assets),
+                )
+            if step.adapter in _EDIT_ADAPTERS:
+                # 1 step gộp edit+export → khi xong = đã Export ra file (KHÔNG upload).
+                await self._activity(
+                    "Video.Export.End",
                     step_id=step.id,
                     job_id=step.job_id,
                     bytes=int(sum(int(a.get("size", 0)) for a in assets)),

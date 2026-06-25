@@ -4,6 +4,7 @@ import { ApiError } from "../api/client";
 import { endpoints } from "../api/endpoints";
 import { CookieManager } from "../components/CookieManager";
 import { Modal } from "../components/Modal";
+import { OutputFolders } from "../components/OutputFolders";
 import { SectionPanel } from "../components/SectionPanel";
 import { useSettingsStore } from "../store/settings";
 import { useUiStore } from "../store/ui";
@@ -169,6 +170,12 @@ export function Settings() {
             <option value="light">Sáng</option>
           </select>
         </label>
+      </div>
+
+      {/* ----- Output Folders (lưu trên máy, KHÔNG upload) ----- */}
+      <div className="mt-6 max-w-3xl">
+        <h2 className="mb-2 text-sm font-semibold text-text">Output (lưu trên máy)</h2>
+        <OutputFolders />
       </div>
 
       {/* ----- Download Settings ----- */}

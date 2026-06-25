@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cloud import google_sheets
 from app.core.errors import NotFoundError, ValidationAppError
+from app.models.asset import Asset
 from app.models.enums import JobStatus
 from app.models.job import Job
 from app.models.project import Project
@@ -486,6 +487,9 @@ class VideoSourceService:
                 )
             ).scalars().all()
         )
+        # Khởi tạo Output Path (transient) = None cho MỌI item (tránh thiếu attr khi serialize).
+        for it in items:
+            it.output_path = it.output_folder = it.output_filename = None
         # Suy status từ job đã link (không commit -> không đụng DB).
         job_ids = [it.job_id for it in items if it.job_id]
         if job_ids:
@@ -496,7 +500,47 @@ class VideoSourceService:
             for it in items:
                 if it.job_id and it.job_id in jmap:
                     it.status = _JOB_TO_ITEM.get(jmap[it.job_id], it.status)
+            await VideoSourceService._attach_output_paths(session, items, jmap)
         return items
+
+    @staticmethod
+    async def _attach_output_paths(
+        session: AsyncSession, items: list[VideoSourceItem], jmap: dict[str, str]
+    ) -> None:
+        """Gắn Output Path/Folder/Filename (chỉ-đọc) cho item ĐÃ XONG — KHÔNG upload, KHÔNG URL.
+
+        Output Path = đường dẫn video trên máy (dest_folder đã nhúng nếu Plugin copy vào Output
+        Folder, nếu không thì data_dir/asset.path). Thuộc tính transient (không persist DB).
+        """
+        from app.services import output_path as op_resolve
+
+        done = [
+            it for it in items
+            if it.job_id and jmap.get(it.job_id) == JobStatus.completed.value
+        ]
+        if not done:
+            return
+        done_jobs = [it.job_id for it in done]
+        arows = (
+            await session.execute(
+                select(Asset.job_id, Asset.path, Asset.size).where(Asset.job_id.in_(done_jobs))
+            )
+        ).all()
+        # Lấy dest_folder mỗi job (nếu đã nhúng) để dựng Output Path đúng thư mục đích.
+        jrows = (
+            await session.execute(select(Job.id, Job.vars).where(Job.id.in_(done_jobs)))
+        ).all()
+        dest_map = {jid: (jv or {}).get("dest_folder") for jid, jv in jrows}
+        by_job: dict[str, list] = {}
+        for jid, path, size in arows:
+            a = Asset(job_id=jid, path=path, size=size or 0)
+            by_job.setdefault(jid, []).append(a)
+        for it in done:
+            info = op_resolve.from_assets(by_job.get(it.job_id, []), dest_map.get(it.job_id))
+            if info:
+                it.output_path = info["output_path"]
+                it.output_folder = info["output_folder"]
+                it.output_filename = info["output_filename"]
 
     @staticmethod
     async def delete_item(session: AsyncSession, source_id: str, item_id: str) -> None:
@@ -533,10 +577,15 @@ class VideoSourceService:
         project_id = req.project_id or await VideoSourceService._default_project_id(session)
         # Cookie Manager: nhúng map cookie (đường dẫn) vào job inputs để plugin tự chọn theo host.
         from app.services.cookie_service import CookieService
+        from app.services.output_settings import OutputSettings
 
         cmap = CookieService.cookie_map()
+        # Output Folders: nhúng thư mục tải về (Download Folder) → Agent/Plugin lưu video vào đó
+        # (KHÔNG hard-code Plugin; KHÔNG upload). Backend đọc Settings, Agent nhận qua inputs.
+        dest_folder = OutputSettings.download_folder()
         inputs = [
-            {"url": it.url, "title": it.title or "", "cookies": cmap} for it in items
+            {"url": it.url, "title": it.title or "", "cookies": cmap, "dest_folder": dest_folder}
+            for it in items
         ]
         batch = await BatchService.create(
             session,

@@ -48,6 +48,19 @@ class _ProgressHandler(logging.Handler):
             pass
 
 
+def _copy_to_dest(ctx: StepContext, produced: Path) -> None:
+    """Export video BVS vào Output Folder (dest_folder ở inputs) — KHÔNG upload, lưu cục bộ."""
+    dest = ctx.inputs.get("dest_folder")
+    if not dest or not produced.is_file():
+        return
+    try:
+        dest_dir = Path(dest)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(produced, dest_dir / produced.name)
+    except OSError as e:
+        raise PermanentError(f"Không Export được video vào Output Folder '{dest}': {e}") from None
+
+
 def _resolve_source(ctx: StepContext) -> Path:
     source = ctx.inputs.get("source") or ctx.config.get("source")
     if not source:
@@ -128,7 +141,9 @@ class BulkAutoAdapter(Adapter):
                 err = next((getattr(r, "error", None) for r in results if getattr(r, "error", None)), "không rõ")
                 raise PermanentError(f"BVS chỉnh lỗi: {err}")
             out = done[0].output_path
-            shutil.copy2(out, ctx.output_dir / f"bvs_{Path(out).name}")
+            final = ctx.output_dir / f"bvs_{Path(out).name}"
+            shutil.copy2(out, final)
+            _copy_to_dest(ctx, final)
             shutil.rmtree(tmp_in, ignore_errors=True)
         finally:
             _LOCK.release()
@@ -179,7 +194,9 @@ class BulkAutoAdapter(Adapter):
         )
         if not out or not Path(out).is_file():
             raise PermanentError("BVS không tạo được video đã chỉnh")
-        shutil.copy2(out, ctx.output_dir / f"bvs_{Path(out).name}")
+        final = ctx.output_dir / f"bvs_{Path(out).name}"
+        shutil.copy2(out, final)
+        _copy_to_dest(ctx, final)
         shutil.rmtree(tmp_in, ignore_errors=True)
 
 

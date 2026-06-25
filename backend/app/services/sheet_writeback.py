@@ -7,7 +7,9 @@ Nguyên tắc:
 - Tự tạo cột write-back nếu thiếu (ensure_columns) — KHÔNG đụng cột sẵn có.
 - KHÔNG bao giờ log token/credential. Lỗi write-back KHÔNG được làm hỏng Job/engine.
 
-`Output URL` để TRỐNG (chờ owner chỉ định đích upload) — cột vẫn được tạo sẵn.
+KHÔNG upload, KHÔNG `Output URL`. Ghi **Output Path** (đường dẫn video trên máy Windows) +
+**Output Filename** (tên file). Video chỉ lưu cục bộ; muốn upload sau này = cài thêm Plugin Upload
+(không phải sửa write-back này).
 """
 from __future__ import annotations
 
@@ -24,20 +26,20 @@ from app.models.enums import JobStatus
 from app.models.job import Job
 from app.models.video_source import VideoSource
 from app.models.video_source_item import VideoSourceItem
+from app.services import output_path as op_resolve
 from app.services.connection_service import ConnectionService
 from app.services.credential_service import CredentialService
 from app.services.event_service import EventService
 
 log = logging.getLogger("sheet_writeback")
 
-# Thứ tự cột write-back (tự tạo nếu thiếu). Output URL chừa trống (chờ đích upload).
+# Thứ tự cột write-back (tự tạo nếu thiếu). KHÔNG upload → Output Path/Filename, KHÔNG Output URL.
 WRITEBACK_COLUMNS = [
     "Status",
-    "Output File",
-    "Output URL",
-    "Finished Time",
-    "Processing Duration",
-    "Workflow",
+    "Output Path",
+    "Output Filename",
+    "Completed Time",
+    "Duration",
     "Error",
 ]
 _SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
@@ -128,10 +130,16 @@ async def _writeback_job(session: AsyncSession, job_id: str) -> None:
 
     ok = job.status == JobStatus.completed
     assets: list[Asset] = list(job.assets)
-    output_file = ""
-    if assets:
-        path = assets[0].path or ""
-        output_file = path.replace("\\", "/").rsplit("/", 1)[-1] or path
+    # Output Path = đường dẫn video trên máy (dest_folder đã nhúng nếu Plugin copy vào Output
+    # Folder, nếu không thì data_dir/asset.path). KHÔNG upload, KHÔNG URL.
+    output_path = ""
+    output_filename = ""
+    if ok and assets:
+        dest_folder = (job.vars or {}).get("dest_folder")
+        info = op_resolve.from_assets(assets, dest_folder)
+        if info:
+            output_path = info["output_path"]
+            output_filename = info["output_filename"]
 
     starts = [s.started_at for s in job.steps if s.started_at]
     ends = [s.finished_at for s in job.steps if s.finished_at]
@@ -144,11 +152,10 @@ async def _writeback_job(session: AsyncSession, job_id: str) -> None:
 
     values = {
         "Status": "Done" if ok else "Failed",
-        "Output File": output_file if ok else "",
-        "Output URL": "",  # chờ owner chỉ định đích upload
-        "Finished Time": end.strftime("%Y-%m-%d %H:%M:%S") if end else "",
-        "Processing Duration": _fmt_duration(dur_ms),
-        "Workflow": job.pipeline,
+        "Output Path": output_path,
+        "Output Filename": output_filename,
+        "Completed Time": end.strftime("%Y-%m-%d %H:%M:%S") if end else "",
+        "Duration": _fmt_duration(dur_ms),
         "Error": err,
     }
 

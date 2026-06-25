@@ -4,6 +4,51 @@
 
 ## [Unreleased]
 
+### Output Path (KHÔNG upload) — video chỉ lưu trên máy Windows (2026-06-25)
+> Owner CHỐT kiến trúc: **KHÔNG upload, KHÔNG cloud** (loại bỏ Output URL/Upload Adapter). Thay
+> bằng **Output Path** — đường dẫn video THẬT trên máy. Video tải về → Download Folder; video đã
+> chỉnh/Export → Export Folder (đọc từ Settings). **Additive** — KHÔNG đổi engine/queue/agent-core/
+> DB schema/route/theme. Adapter Framework giữ nguyên → sau này muốn Upload chỉ cần cài thêm Plugin.
+
+#### Added — Backend
+- `services/output_settings.py`: Output Folders (Download/Export/Temp) lưu JSON `<data_dir>/
+  output_folders.json` (đồng pattern Cookie Manager — KHÔNG đụng DB). Mặc định
+  `C:\Users\PC\Videos\video gốc` / `video da sua` / `temp`. REST `GET|PUT /api/v1/settings/folders`.
+- `services/output_path.py`: suy Output Path/Folder/Filename từ Asset (chọn asset video lớn nhất) +
+  `dest_folder` (nếu Plugin đã copy vào Output Folder) hoặc `data_dir/asset.path`. KHÔNG URL.
+- `VideoSourceService.run` nhúng `dest_folder = Download Folder` vào job inputs; `VariationService`
+  nhúng `Export Folder` (biến thể + BVS). Agent đọc qua inputs → KHÔNG hard-code Plugin.
+- `VideoSourceService.list_items` gắn `output_path/output_folder/output_filename` (chỉ-đọc) cho item
+  đã xong → `VideoSourceItemOut` thêm 3 field. Stats thêm khối **edit** (ffmpeg/BVS: lượt/thành
+  công/lỗi/đã Export/dung lượng xuất/thời gian TB) — `StatsOut.edit` (`EditStats`).
+- Logs: engine phát **Video.Edit.Start / Video.Edit.Progress / Video.Export.End** cho adapter
+  `video.ffmpeg`/`video.bulkauto` (mirror Video.Download.*; 1 step gộp edit+export). `event_service`
+  định tuyến `Video.*` vào entity job.
+
+#### Changed — Google Sheets Write-back (KHÔNG còn Output URL)
+- Cột write-back: **Status · Output Path · Output Filename · Completed Time · Duration · Error**
+  (bỏ Output URL/Output File/Finished Time/Processing Duration/Workflow). Output Path lấy từ
+  asset + `dest_folder`. Tự tạo cột nếu thiếu, KHÔNG đụng cột khác.
+
+#### Added — Plugins (additive, KHÔNG sửa Agent Core)
+- yt_dlp/ffmpeg/bulkauto: sau khi tạo file, nếu inputs có `dest_folder` → **copy file vào Output
+  Folder** (giữ bản trong output_dir để Agent thu asset như cũ). Lỗi copy → PermanentError rõ ràng.
+- `plugins/bulkauto`: thêm `config.schema.json` + `config_schema` trong manifest (sửa contract test
+  thiếu sẵn từ trước → agent pytest xanh lại).
+
+#### Added — Frontend
+- `components/OutputFolders.tsx` trong Settings (Download/Export/Temp; lưu/đọc REST). Video Sources:
+  cột **Output** (tên file + full path ở tooltip). Statistics: khối **Chỉnh sửa & Export**. Types
+  `FolderSettings`/`EditStats`, hooks `useFolders`/`useSaveFolders`, item thêm output fields.
+
+#### Verified (LIVE, không mock)
+- **Desktop Agent LIVE**: tải BBB 1MB qua agent `win-pc-01` → file THẬT 967.8KB nằm tại
+  `C:\Users\PC\Videos\video gốc\Big_Buck_Bunny_360_10s_1MB.mp4` (Plugin copy đúng), item
+  `output_path` = đúng đường dẫn đó (Workflow/Queue/Video Sources chạy thật). REST PUT/GET folders
+  round-trip OK; Stats `edit` thật (10 Export, 28.4MB). Browser: Settings Output Folders (3 thư mục),
+  Statistics khối Export, Video Sources cột Output ("Big_Buck_Bunny…mp4"). Backend ruff ✅ pytest
+  **65/1skip** (+5); Agent pytest **15** ✅; FE lint+build ✅; 0 lỗi console.
+
 ### Form tuỳ chỉnh BVS trên web — logo/intro/outro/nhạc/tốc độ (2026-06-25)
 > Web có thể tuỳ chỉnh BVS khi bấm **"🎞️ Chỉnh bằng BVS"**: chọn thư mục logo/intro/outro/nhạc nền
 > + tỉ lệ chèn + chế độ tốc độ. **Additive, THUẦN FE** — schema `bvs_config` (dict), plugin

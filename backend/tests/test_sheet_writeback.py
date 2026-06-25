@@ -27,13 +27,13 @@ def test_fmt_duration() -> None:
 
 
 def test_writeback_columns_contract() -> None:
-    # Đúng 7 cột theo SPEC v1.0 §1, Output URL có mặt (để trống lúc ghi).
+    # KHÔNG upload → Output Path/Filename, KHÔNG Output URL (owner: video lưu trên máy).
     assert WRITEBACK_COLUMNS == [
         "Status",
-        "Output File",
-        "Output URL",
-        "Finished Time",
-        "Processing Duration",
-        "Workflow",
+        "Output Path",
+        "Output Filename",
+        "Completed Time",
+        "Duration",
         "Error",
     ]
+    assert "Output URL" not in WRITEBACK_COLUMNS
