@@ -161,7 +161,7 @@ class VariationService:
                     "Video này tải về CHỈ CÓ AUDIO — chọn item, bấm Run Workflow tải lại rồi chỉnh."
                 )
             raise ValidationAppError(
-                "Item này chưa có file video (hoặc tải ở phiên cũ) — Run Workflow tải lại rồi chỉnh."
+                "Item chưa có file video (hoặc tải ở phiên cũ) — Run Workflow tải lại rồi chỉnh."
             )
         return vid
 
