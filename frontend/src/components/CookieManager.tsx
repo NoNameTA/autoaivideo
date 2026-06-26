@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { ApiError } from "../api/client";
+import { HelpTip } from "./HelpTip";
 import { useCookies, useSaveCookies, useTestCookie } from "../api/hooks";
 import { useUiStore } from "../store/ui";
 import type { CookiePlatform } from "../types/api";
@@ -99,10 +100,13 @@ export function CookieManager() {
   return (
     <div className="rounded-lg border border-border bg-surface/40 p-4">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-semibold text-text">Cookie Manager (đa nền tảng)</span>
+        <span className="flex items-center gap-1.5 text-sm font-semibold text-text">
+          Cookie Manager (đa nền tảng)
+          <HelpTip id="cookie-manager" />
+        </span>
         <label className="flex items-center gap-2 text-sm text-text">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
-          Enable
+          Bật
         </label>
       </div>
       <p className="mb-3 text-xs text-muted">
@@ -135,7 +139,7 @@ export function CookieManager() {
                 className={`${INPUT} md:col-span-2`}
                 value={r.name}
                 onChange={(e) => setRow(i, { name: e.target.value })}
-                placeholder="Platform"
+                placeholder="Nền tảng"
               />
               <input
                 className={`${INPUT} md:col-span-3`}
@@ -165,7 +169,7 @@ export function CookieManager() {
                   disabled={test.isPending || !r.name}
                   className="rounded border border-border px-2 py-1 text-xs text-text hover:bg-border disabled:opacity-50"
                 >
-                  Test
+                  Kiểm tra
                 </button>
                 <button
                   onClick={() => removeRow(i)}
@@ -214,8 +218,8 @@ export function CookieManager() {
             </li>
           </ol>
           <div className="mt-1 text-muted">
-            Xong → Desktop Agent tự phát hiện (không cần restart) → bấm <b>Test</b> phải hiện{" "}
-            <span className="text-success">Valid</span>.
+            Xong → Desktop Agent tự phát hiện (không cần khởi động lại) → bấm <b>Kiểm tra</b> phải hiện{" "}
+            <span className="text-success">Hợp lệ</span>.
           </div>
         </div>
       )}

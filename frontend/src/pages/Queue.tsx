@@ -36,8 +36,9 @@ export function Queue() {
 
   return (
     <SectionPanel
-      title="Queue"
-      description="Hàng đợi job theo thời gian thực — lọc, tìm kiếm, retry/cancel (SPEC 04 §4)."
+      title="Hàng đợi (Queue)"
+      help="queue"
+      description="Hàng đợi job theo thời gian thực — lọc, tìm kiếm, thử lại/huỷ (SPEC 04 §4)."
       spec="SPEC 04 §4, 10"
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -81,8 +82,8 @@ export function Queue() {
             <thead className="text-left text-muted">
               <tr className="border-b border-border">
                 <th className="py-2 pr-3">Job</th>
-                <th className="py-2 pr-3">Batch</th>
-                <th className="py-2 pr-3">Pipeline</th>
+                <th className="py-2 pr-3">Lô (Batch)</th>
+                <th className="py-2 pr-3">Quy trình</th>
                 <th className="py-2 pr-3">Trạng thái</th>
                 <th className="py-2 pr-3">%</th>
                 <th className="py-2 pr-3">Cập nhật</th>
@@ -117,13 +118,13 @@ export function Queue() {
                         disabled={!["failed", "cancelled"].includes(j.status)}
                         onClick={() =>
                           retry.mutate(j.id, {
-                            onSuccess: () => push("success", "Đã retry"),
+                            onSuccess: () => push("success", "Đã thử lại"),
                             onError,
                           })
                         }
                         className="text-warning hover:underline disabled:opacity-30"
                       >
-                        Retry
+                        Thử lại
                       </button>
                       <button
                         disabled={["completed", "cancelled"].includes(j.status)}

@@ -10,6 +10,7 @@ import {
   useDeleteCredential,
   useTestConnection,
 } from "../api/hooks";
+import { HelpTip } from "./HelpTip";
 import { useUiStore } from "../store/ui";
 import { fmtDate } from "../lib/format";
 
@@ -96,7 +97,10 @@ export function CloudConnections() {
 
       {/* ----- Credentials ----- */}
       <div className="mb-6">
-        <h3 className="mb-2 text-sm font-semibold text-text">Credentials</h3>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text">
+          Khoá bí mật (Credentials)
+          <HelpTip id="credentials" />
+        </h3>
         <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-3">
           <input className={INPUT} value={cName} onChange={(e) => setCName(e.target.value)}
             placeholder="Tên credential" />
@@ -139,7 +143,10 @@ export function CloudConnections() {
 
       {/* ----- Connections ----- */}
       <div>
-        <h3 className="mb-2 text-sm font-semibold text-text">Connections</h3>
+        <h3 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text">
+          Kết nối (Connections)
+          <HelpTip id="cloud-connections" />
+        </h3>
         <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-2">
           <input className={INPUT} value={dName} onChange={(e) => setDName(e.target.value)}
             placeholder="Tên hiển thị connection" />

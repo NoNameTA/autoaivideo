@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { ApiError } from "../api/client";
+import { HelpTip } from "./HelpTip";
 import { useFolders, useSaveFolders } from "../api/hooks";
 import { useUiStore } from "../store/ui";
 
@@ -43,7 +44,10 @@ export function OutputFolders() {
 
   return (
     <div className="rounded-lg border border-border bg-surface/40 p-4">
-      <div className="mb-2 text-sm font-semibold text-text">Output Folders (lưu trên máy)</div>
+      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text">
+        Thư mục lưu video (trên máy)
+        <HelpTip id="output-folders" />
+      </div>
       <p className="mb-3 text-xs text-muted">
         Video chỉ lưu TRÊN MÁY Windows — KHÔNG upload, KHÔNG cloud. Agent lưu video tải về vào
         Download Folder, video đã chỉnh/Export vào Export Folder. Để trống = giữ mặc định.

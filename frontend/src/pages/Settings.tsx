@@ -80,8 +80,9 @@ export function Settings() {
 
   return (
     <SectionPanel
-      title="Settings"
-      description="Token, đường dẫn backend, theme (SPEC 03 §3, 11)."
+      title="Cài đặt"
+      help="settings"
+      description="Token, đường dẫn backend, giao diện (SPEC 03 §3, 11)."
       spec="SPEC 11 §3, 12 §2"
     >
       <div className="flex max-w-xl flex-col gap-4">
@@ -174,13 +175,13 @@ export function Settings() {
 
       {/* ----- Output Folders (lưu trên máy, KHÔNG upload) ----- */}
       <div className="mt-6 max-w-3xl">
-        <h2 className="mb-2 text-sm font-semibold text-text">Output (lưu trên máy)</h2>
+        <h2 className="mb-2 text-sm font-semibold text-text">Lưu trữ (trên máy)</h2>
         <OutputFolders />
       </div>
 
       {/* ----- Download Settings ----- */}
       <div className="mt-6 max-w-3xl">
-        <h2 className="mb-2 text-sm font-semibold text-text">Download Settings</h2>
+        <h2 className="mb-2 text-sm font-semibold text-text">Cài đặt tải xuống</h2>
         <CookieManager />
       </div>
 

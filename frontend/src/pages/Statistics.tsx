@@ -218,7 +218,7 @@ function Body({ data }: { data: Stats }) {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-text">Download (yt-dlp / media.download)</h2>
+        <h2 className="mb-3 text-sm font-semibold text-text">Tải video (yt-dlp / media.download)</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Kpi label="Tổng lượt tải" value={String(data.download.downloads_total)} />
           <Kpi
@@ -342,8 +342,9 @@ export function Statistics() {
 
   return (
     <SectionPanel
-      title="Statistics"
-      description="Thống kê từ data thật — job/step theo trạng thái, throughput, tỉ lệ lỗi, thời gian adapter (SPEC 02 §7)."
+      title="Thống kê"
+      help="statistics"
+      description="Thống kê từ dữ liệu thật — job/step theo trạng thái, thông lượng, tỉ lệ lỗi, thời gian adapter (SPEC 02 §7)."
       spec="SPEC 02 §7"
     >
       <div className="mb-3 flex items-center gap-2">

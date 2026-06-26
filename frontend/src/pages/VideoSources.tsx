@@ -20,6 +20,7 @@ import {
   useVideoSources,
   useVideoSourcesSummary,
 } from "../api/hooks";
+import { HelpTip } from "../components/HelpTip";
 import { SectionPanel } from "../components/SectionPanel";
 import { useUiStore } from "../store/ui";
 import type {
@@ -113,8 +114,9 @@ export function VideoSources() {
 
   return (
     <SectionPanel
-      title="Video Sources"
-      description="Nguồn video đầu vào — Direct URL (V1). Website tạo Job, Desktop Agent tải bằng yt-dlp (SPEC 02 §4.1)."
+      title="Nguồn video"
+      help="video-sources"
+      description="Nguồn video đầu vào — Direct URL (dán link) hoặc Google Sheets. Website tạo Job, Desktop Agent tải bằng yt-dlp (SPEC 02 §4.1)."
       spec="SPEC 02 §4.1, 03 §3, 10"
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -142,7 +144,7 @@ export function VideoSources() {
         </button>
         {/* Auto Refresh (incremental, không reload trang) */}
         <div className="ml-auto flex items-center gap-1 text-xs text-muted">
-          <span>Auto refresh</span>
+          <span>Tự làm mới</span>
           <select
             className="rounded border border-border bg-bg px-2 py-1 text-text"
             value={autoMs}
@@ -159,7 +161,7 @@ export function VideoSources() {
             }}
             className="rounded border border-border px-2 py-1 text-text hover:bg-border"
           >
-            ↻ Refresh
+            ↻ Làm mới
           </button>
         </div>
       </div>
@@ -460,13 +462,13 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
               disabled={addLinks.isPending}
               className="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-hover disabled:opacity-50"
             >
-              Add Link
+              Thêm link
             </button>
             <button
               onClick={() => fileRef.current?.click()}
               className="rounded border border-border px-3 py-1 text-sm text-text hover:bg-border"
             >
-              Import txt / CSV
+              Nhập txt / CSV
             </button>
             <input
               ref={fileRef}
@@ -491,18 +493,19 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
         >
           ↻ Refresh
         </button>
+        <HelpTip id="run-workflow" className="ml-auto" />
         <button
           onClick={runWorkflow}
           disabled={run.isPending || (items.data?.length ?? 0) === 0}
-          className="ml-auto rounded bg-success px-4 py-1 text-sm text-white hover:opacity-90 disabled:opacity-50"
+          className="rounded bg-success px-4 py-1 text-sm text-white hover:opacity-90 disabled:opacity-50"
         >
-          ▶ Run Workflow{selected.size > 0 ? ` (${selected.size})` : " (tất cả)"}
+          ▶ Chạy quy trình{selected.size > 0 ? ` (${selected.size})` : " (tất cả)"}
         </button>
       </div>
 
       {/* Tạo biến thể (1 video đã tải -> N bản chỉnh sửa bằng ffmpeg) */}
       <div className="mb-3 flex flex-wrap items-center gap-2 rounded border border-border bg-bg p-2 text-sm">
-        <span className="font-medium text-text">🎬 Biến thể</span>
+        <span className="flex items-center gap-1 font-medium text-text">🎬 Biến thể <HelpTip id="variations" /></span>
         <label className="flex items-center gap-1 text-muted">
           Số bản
           <input type="number" min={1} max={50} value={varCount}
@@ -530,6 +533,7 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
           className="rounded border border-border px-3 py-1 text-text hover:bg-border disabled:opacity-50">
           🎞️ Chỉnh bằng BVS
         </button>
+        <HelpTip id="bvs-edit" />
         <button onClick={() => setBvsOpen((v) => !v)}
           title="Tuỳ chỉnh logo / intro / outro / nhạc / tốc độ cho BVS"
           className="rounded border border-border px-2 py-1 text-xs text-muted hover:bg-border">
@@ -643,8 +647,8 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
                 <th className="py-2 pr-3">Tên</th>
                 <th className="py-2 pr-3">Link</th>
                 <th className="py-2 pr-3">Trạng thái</th>
-                <th className="py-2 pr-3">Media</th>
-                <th className="py-2 pr-3">Output</th>
+                <th className="py-2 pr-3"><span className="inline-flex items-center gap-1">Media <HelpTip id="media-type" /></span></th>
+                <th className="py-2 pr-3"><span className="inline-flex items-center gap-1">Output <HelpTip id="output-path" /></span></th>
                 <th className="py-2 pr-3">Job</th>
                 <th className="py-2 pr-3"></th>
               </tr>
@@ -818,8 +822,9 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
 
   return (
     <div className="mb-4">
-      <div className="mb-2 text-sm font-semibold text-text">
-        Google Sheets (nguồn link — Backend đọc, Agent không tham gia preview)
+      <div className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text">
+        Google Sheets (nguồn link — Backend đọc, Agent không tham gia xem trước)
+        <HelpTip id="google-sheets" />
       </div>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
         <select className={INPUT} value={connId} onChange={(e) => setConnId(e.target.value)}>
@@ -904,19 +909,20 @@ function SheetConfig({ source, onImported }: { source: VideoSource; onImported: 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button onClick={onTest} disabled={testConn.isPending}
           className="rounded border border-border px-3 py-1 text-sm text-text hover:bg-border disabled:opacity-50">
-          Test Connection
+          Kiểm tra kết nối
         </button>
+        <HelpTip id="test-connection" />
         <button onClick={onCount} disabled={countSheet.isPending}
           className="rounded border border-border px-3 py-1 text-sm text-text hover:bg-border disabled:opacity-50">
           {countSheet.isPending ? "Đang đếm…" : "Đếm trước"}
         </button>
         <button onClick={onRead} disabled={readSheet.isPending}
           className="rounded border border-border px-3 py-1 text-sm text-text hover:bg-border disabled:opacity-50">
-          {readSheet.isPending ? "Đang đọc…" : "Read Sheet (Preview)"}
+          {readSheet.isPending ? "Đang đọc…" : "Đọc Sheet (xem trước)"}
         </button>
         <button onClick={onImport} disabled={importSheet.isPending}
           className="rounded bg-primary px-3 py-1 text-sm text-white hover:bg-primary-hover disabled:opacity-50">
-          {importSheet.isPending ? "Đang import…" : "Import"}
+          {importSheet.isPending ? "Đang nhập…" : "Import (Nhập)"}
         </button>
         {count && (
           <span className="text-xs text-muted">

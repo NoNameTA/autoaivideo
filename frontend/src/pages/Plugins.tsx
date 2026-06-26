@@ -29,8 +29,9 @@ export function Plugins() {
 
   return (
     <SectionPanel
-      title="Plugin Manager"
-      description="Install / Enable / Disable / Remove plugin (SPEC 08)."
+      title="Quản lý Plugin"
+      help="plugins"
+      description="Cài / Bật / Tắt / Gỡ plugin (SPEC 08)."
       spec="SPEC 08, 03 §5"
     >
       <div className="mb-4 flex justify-end">

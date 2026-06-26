@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 
+import { HelpTip } from "./HelpTip";
 import { useWebSocketConnection } from "../hooks/useWebSocket";
 import { useSettingsStore } from "../store/settings";
 import { useUiStore } from "../store/ui";
@@ -17,35 +18,35 @@ interface NavEntry {
 // Mọi route hiện có đều có mặt: Dashboard, Projects, Video Sources, Workflow, Queue,
 // Logs, Statistics, Desktop Agent, Plugin Manager, File Manager, External Applications, Settings.
 const GROUPS: { label: string; items: NavEntry[] }[] = [
-  { label: "Dashboard", items: [
-    { to: "/", label: "Dashboard", end: true },
+  { label: "Bảng điều khiển", items: [
+    { to: "/", label: "Bảng điều khiển", end: true },
   ] },
-  { label: "Projects", items: [
-    { to: "/projects", label: "Projects" },
+  { label: "Dự án", items: [
+    { to: "/projects", label: "Dự án" },
   ] },
-  { label: "Workflow", items: [
-    { to: "/workflow", label: "Workflow" },
-    { to: "/queue", label: "Queue" },
+  { label: "Quy trình", items: [
+    { to: "/workflow", label: "Quy trình" },
+    { to: "/queue", label: "Hàng đợi" },
   ] },
   { label: "Video", items: [
-    { to: "/video-sources", label: "Video Sources" },
+    { to: "/video-sources", label: "Nguồn video" },
   ] },
-  { label: "Monitoring", items: [
-    { to: "/logs", label: "Logs" },
-    { to: "/stats", label: "Statistics" },
+  { label: "Giám sát", items: [
+    { to: "/logs", label: "Nhật ký" },
+    { to: "/stats", label: "Thống kê" },
   ] },
   { label: "Agent", items: [
     { to: "/agent", label: "Desktop Agent" },
-    { to: "/plugins", label: "Plugin Manager" },
+    { to: "/plugins", label: "Quản lý Plugin" },
   ] },
-  { label: "Files", items: [
-    { to: "/files", label: "File Manager" },
+  { label: "Tệp", items: [
+    { to: "/files", label: "Quản lý tệp" },
   ] },
-  { label: "Integration", items: [
-    { to: "/external", label: "External Applications" },
+  { label: "Tích hợp", items: [
+    { to: "/external", label: "Ứng dụng ngoài" },
   ] },
-  { label: "Settings", items: [
-    { to: "/settings", label: "Settings" },
+  { label: "Cài đặt", items: [
+    { to: "/settings", label: "Cài đặt" },
   ] },
 ];
 
@@ -168,10 +169,11 @@ export function Layout() {
   }, [drawerOpen]);
 
   const wsStatus = (
-    <div className="px-3 text-xs">
+    <div className="flex items-center gap-1 px-3 text-xs">
       <span className={wsConnected ? "text-success" : "text-muted"}>
         ● {wsConnected ? "Realtime đã kết nối" : "Realtime ngắt"}
       </span>
+      <HelpTip id="realtime" />
     </div>
   );
 
@@ -241,7 +243,7 @@ export function Layout() {
       <main className="flex-1 overflow-auto p-6 pt-16">
         {!token && (
           <div className="mb-4 rounded border-l-4 border-warning bg-surface px-4 py-2 text-sm text-text">
-            Chưa cấu hình token. Vào <span className="font-semibold">Settings</span> để nhập token
+            Chưa cấu hình token. Vào <span className="font-semibold">Cài đặt</span> để nhập token
             chủ sở hữu trước khi gọi API.
           </div>
         )}

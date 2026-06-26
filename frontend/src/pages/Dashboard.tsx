@@ -43,15 +43,16 @@ export function Dashboard() {
 
   return (
     <SectionPanel
-      title="Dashboard"
+      title="Bảng điều khiển"
+      help="dashboard"
       description="Tổng quan hệ thống + hoạt động realtime."
       spec="SPEC 12 §5, 09 §4.1"
     >
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi label="Backend" value={info.isError ? "Offline" : info.data ? "Online" : "…"} />
+        <Kpi label="Backend" value={info.isError ? "Mất kết nối" : info.data ? "Hoạt động" : "…"} />
         <Kpi label="Phiên bản" value={info.data?.version ?? "—"} />
         <Kpi label="Môi trường" value={info.data?.env ?? "—"} />
-        <Kpi label="Agent online" value={String(online)} />
+        <Kpi label="Agent đang kết nối" value={String(online)} />
       </div>
 
       <div className="mt-6">

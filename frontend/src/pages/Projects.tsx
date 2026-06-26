@@ -17,8 +17,9 @@ export function Projects() {
 
   return (
     <SectionPanel
-      title="Projects"
-      description="Quản lý dự án → Batch → Job (SPEC 01 §5)."
+      title="Dự án"
+      help="projects"
+      description="Quản lý dự án → Lô (Batch) → Job (SPEC 01 §5)."
       spec="SPEC 03 §3, 04 §2"
     >
       <div className="mb-4 flex justify-end">

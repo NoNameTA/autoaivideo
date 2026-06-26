@@ -4,6 +4,33 @@
 
 ## [Unreleased]
 
+### Việt hóa toàn bộ giao diện + hệ thống hướng dẫn ⓘ (2026-06-26)
+> Việt hóa 100% phần hiển thị + thêm biểu tượng hướng dẫn ⓘ ở mọi tiêu đề/chức năng chính. **Thuần
+> FE, additive** — KHÔNG đổi kiến trúc/route/API/chức năng/theme. Giữ nguyên tên kỹ thuật (API,
+> Plugin, Adapter, Agent, Cookie, ffmpeg, yt-dlp, capability…).
+
+#### Added — Hệ thống hướng dẫn (tập trung, mở rộng được)
+- `help/guides.ts`: kho hướng dẫn TẬP TRUNG (~27 mục), mỗi mục LUÔN có 2 phần **Cách sử dụng**
+  (từng bước) + **Tác dụng**. Thêm hướng dẫn = thêm 1 mục ở đây, KHÔNG sửa component.
+- `components/HelpTip.tsx`: nút ⓘ nhỏ (đồng bộ theme, không lệch bố cục) → bấm mở popover neo theo
+  vị trí nút; đóng bằng ✕/Esc/bấm ngoài. KHÔNG mở tab/đổi trang/reload.
+- `SectionPanel` thêm prop `help` → mọi tiêu đề trang tự có ⓘ. Gắn ⓘ cho: 12 trang + Realtime +
+  Cookie Manager + Thư mục lưu video + Credentials + Connections + Google Sheets + Tạo biến thể +
+  Chỉnh BVS + Chạy quy trình + Media + Output + Kiểm tra kết nối.
+
+#### Changed — Việt hóa hiển thị
+- Điều hướng (Layout): Bảng điều khiển · Dự án · Quy trình · Hàng đợi · Nguồn video · Nhật ký ·
+  Thống kê · Desktop Agent · Quản lý Plugin · Quản lý tệp · Ứng dụng ngoài · Cài đặt.
+- Tiêu đề/mô tả 12 trang + nút/nhãn còn tiếng Anh: Run Workflow→Chạy quy trình, Test Connection→
+  Kiểm tra kết nối, Read Sheet→Đọc Sheet, Add Link→Thêm link, Retry→Thử lại, Enable→Bật, Test→Kiểm
+  tra, Auto refresh→Tự làm mới, Refresh→Làm mới, Download (heading)→Tải video, Credentials/
+  Connections/Output Folders/Download Settings… → tiếng Việt.
+
+#### Verified
+- Browser: 12/12 trang có tiêu đề tiếng Việt + ⓘ; popover hiện đúng 2 mục (Cách sử dụng + Tác dụng);
+  điều hướng 11/11 nhãn tiếng Việt, 0 nhãn tiếng Anh; **0 lỗi console**; theme giữ nguyên. FE
+  lint+build ✅; Backend ruff+pytest 71/1skip (không đổi).
+
 ### Media Check — phân biệt VIDEO / AUDIO_ONLY / INVALID bằng ffprobe (2026-06-26)
 > Bổ sung bước Media Check SAU Download: dùng **ffprobe (stream THẬT)**, KHÔNG dựa đuôi/tên file/MIME.
 > Tránh đưa nhầm file chỉ-audio vào chỉnh sửa. **Additive** — KHÔNG đổi Workflow/Queue Engine,

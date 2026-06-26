@@ -147,7 +147,7 @@ export function Workflow() {
       .runPipeline(runFor.name, { project_id: runProject, name: `Run ${runFor.name}`, inputs })
       .then((batch) => {
         setRunFor(null);
-        push("success", "Đã chạy workflow");
+        push("success", "Đã chạy quy trình");
         navigate(`/batches/${batch.id}`);
       })
       .catch(onError);
@@ -155,7 +155,8 @@ export function Workflow() {
 
   return (
     <SectionPanel
-      title="Workflow"
+      title="Quy trình (Workflow)"
+      help="workflow"
       description="Tạo / chỉnh sửa / chạy pipeline và theo dõi trạng thái từng bước (SPEC 02 §4)."
       spec="SPEC 02 §4, 03 §5"
     >
@@ -182,7 +183,7 @@ export function Workflow() {
             <div className="flex items-center justify-between">
               <div className="font-semibold text-text">{p.name}</div>
               {p.builtin && (
-                <span className="rounded bg-border px-2 py-0.5 text-xs text-muted">built-in</span>
+                <span className="rounded bg-border px-2 py-0.5 text-xs text-muted">có sẵn</span>
               )}
             </div>
             <div className="mt-1 text-xs text-muted">{p.description || "—"}</div>
@@ -202,7 +203,7 @@ export function Workflow() {
             </ol>
             <div className="mt-3 flex gap-3 text-sm">
               <button onClick={() => { setRunFor(p); setRunProject(""); setRunInputs(""); }} className="text-primary hover:underline">
-                Run
+                Chạy
               </button>
               <button onClick={() => openEdit(p)} className="text-primary hover:underline">
                 Sửa
@@ -246,7 +247,7 @@ export function Workflow() {
             <input className={INPUT} value={desc} onChange={(e) => setDesc(e.target.value)} />
           </label>
 
-          <div className="text-sm font-semibold text-text">Steps</div>
+          <div className="text-sm font-semibold text-text">Các bước</div>
           <div className="flex max-h-72 flex-col gap-2 overflow-auto">
             {steps.map((s, i) => (
               <div key={i} className="rounded border border-border p-2">
@@ -308,11 +309,11 @@ export function Workflow() {
               ))}
             </select>
             {projects.data?.items.length === 0 && (
-              <span className="text-xs text-warning">Chưa có dự án — tạo ở trang Projects trước.</span>
+              <span className="text-xs text-warning">Chưa có dự án — tạo ở trang Dự án trước.</span>
             )}
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            Inputs — mỗi dòng 1 JSON object
+            Dữ liệu vào — mỗi dòng 1 JSON object
             <textarea
               className={`${INPUT} h-28 font-mono text-xs`}
               value={runInputs}
@@ -324,7 +325,7 @@ export function Workflow() {
             onClick={submitRun}
             className="rounded bg-primary px-4 py-2 text-sm text-white hover:bg-primary-hover"
           >
-            Chạy workflow
+            Chạy quy trình
           </button>
         </div>
       </Modal>

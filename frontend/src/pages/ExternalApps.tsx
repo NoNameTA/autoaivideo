@@ -48,8 +48,9 @@ export function ExternalApps() {
 
   return (
     <SectionPanel
-      title="External Applications"
-      description="App ngoài điều khiển qua Adapter — loại tích hợp, trạng thái kết nối, test kết nối (SPEC 06)."
+      title="Ứng dụng ngoài"
+      help="external-apps"
+      description="Ứng dụng ngoài điều khiển qua Adapter — loại tích hợp, trạng thái kết nối, kiểm tra kết nối (SPEC 06)."
       spec="SPEC 06, 08"
     >
       <div className="mb-4 flex flex-wrap items-center gap-2">

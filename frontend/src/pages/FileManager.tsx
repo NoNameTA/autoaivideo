@@ -74,8 +74,9 @@ export function FileManager() {
 
   return (
     <SectionPanel
-      title="File Manager"
-      description="Duyệt file trong Allowed Folders qua Backend → Agent (SPEC 07, 11 §5)."
+      title="Quản lý tệp"
+      help="file-manager"
+      description="Duyệt tệp trong các thư mục được phép qua Backend → Agent (SPEC 07, 11 §5)."
       spec="SPEC 07"
     >
       <div className="flex gap-4">

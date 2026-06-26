@@ -9,7 +9,8 @@ export function DesktopAgent() {
   return (
     <SectionPanel
       title="Desktop Agent"
-      description="Trạng thái agent, capability, heartbeat (SPEC 05, 09 §4)."
+      help="desktop-agent"
+      description="Trạng thái agent, capability, nhịp tim (heartbeat) (SPEC 05, 09 §4)."
       spec="SPEC 05, 09 §4"
     >
       {isLoading && <p className="text-sm text-muted">Đang tải…</p>}

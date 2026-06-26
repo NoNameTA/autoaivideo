@@ -59,7 +59,8 @@ export function Logs() {
 
   return (
     <SectionPanel
-      title="Logs"
+      title="Nhật ký (Logs)"
+      help="logs"
       description="Nhật ký hệ thống realtime — lọc theo mức độ / nhóm / tìm kiếm (SPEC 04 §7, 10 §2)."
       spec="SPEC 04 §7, 10 §2, 11 §6"
     >
@@ -99,7 +100,7 @@ export function Logs() {
           className={`text-xs ${wsConnected ? "text-success" : "text-muted"}`}
           title={wsConnected ? "Realtime đang kết nối" : "Mất kết nối realtime"}
         >
-          {wsConnected ? "● live" : "○ offline"}
+          {wsConnected ? "● trực tiếp" : "○ ngắt"}
         </span>
         <button
           onClick={() => logs.refetch()}
