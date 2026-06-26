@@ -5,3 +5,6 @@ pydantic-settings==2.7.1
 PyYAML==6.0.2
 watchdog==6.0.0
 pywinauto==0.6.9 ; sys_platform == "win32"
+# curl_cffi: cung cấp impersonate target cho yt-dlp → vượt anti-bot 403 của TikTok khi tải video
+# (yt-dlp tự dùng khi có; KHÔNG bắt buộc cho nền tảng khác). Cài kèm yt-dlp ở môi trường Agent.
+curl_cffi>=0.7

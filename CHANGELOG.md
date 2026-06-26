@@ -4,6 +4,21 @@
 
 ## [Unreleased]
 
+### ✅ Cookie Manager HOÀN THÀNH — nghiệm thu LIVE TikTok (2026-06-26)
+> Tải video TikTok THẬT thành công end-to-end với cookie đăng nhập của user. Thêm dependency
+> `curl_cffi` (agent/requirements.txt) — cung cấp impersonate target cho yt-dlp để vượt anti-bot
+> 403 của TikTok. KHÔNG đổi code plugin/engine/queue/agent-core; yt-dlp tự dùng curl_cffi khi có.
+- **VERIFY LIVE THẬT (không mock)**: user xuất `tiktok.cookies.txt` (extension Get cookies.txt
+  LOCALLY) → đặt `.secrets\` → **auto-detect** (TikTok `missing`→`loaded`, KHÔNG restart Agent) →
+  **Agent Test = Valid** (yt-dlp --simulate với cookie, source=agent) → tải qua Workflow → **file
+  `.mp4` 4.4MB có VIDEO stream `hevc 720×1280 23.5s`** (ffprobe) tại `C:\Users\PC\Videos\video gốc\`
+  — KHÔNG còn audio-only. Job/Queue/Workflow Completed. Logs Cookie.Valid/Loaded/Reloaded +
+  Video.Download.Start/End + Workflow.End. Stats with_cookie↑, TikTok Downloads=16, Valid/Loaded↑.
+  `.secrets` gitignored. ruff+pytest 65/1skip, agent 15, FE lint+build, browser 0 lỗi console.
+- **Lưu ý**: một số video TikTok (đặc biệt video bị creator tắt download / dạng ảnh) yt-dlp chỉ
+  trích được audio — đây là giới hạn extractor yt-dlp↔TikTok theo từng video, KHÔNG phải lỗi Cookie
+  Manager (cookie + impersonation đã chứng minh tải được video `hevc` thật).
+
 ### Cookie auto-detect trong luồng tải — Cookie.Reloaded khi Run (2026-06-25)
 > Bổ sung nhỏ: `VideoSourceService.run()` gọi `CookieService.detect_reloads()` → log
 > **Cookie.Reloaded** NGAY trong luồng tải khi file cookie trong `.secrets` mới/đổi (trước chỉ phát
