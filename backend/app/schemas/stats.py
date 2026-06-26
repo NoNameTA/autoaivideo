@@ -47,6 +47,16 @@ class EditStats(BaseModel):
     avg_edit_seconds: float
 
 
+class MediaStats(BaseModel):
+    """Media Check (ffprobe): video/audio_only/invalid/chưa kiểm + tỉ lệ video hợp lệ."""
+
+    video: int
+    audio_only: int
+    invalid: int
+    unchecked: int
+    valid_ratio: float
+
+
 class CookieStats(BaseModel):
     """Metric Cookie Manager (status-only)."""
 
@@ -74,5 +84,6 @@ class StatsOut(BaseModel):
     video: VideoStats
     download: DownloadStats
     edit: EditStats
+    media: MediaStats
     cookies: CookieStats
     generated_at: datetime

@@ -42,6 +42,8 @@ class VideoSourceItemOut(BaseModel):
     sheet_row: int | None = None
     video_id: str | None = None
     job_id: str | None
+    # Media Check (ffprobe sau Download): video | audio_only | invalid | None (chưa kiểm).
+    media_type: str | None = None
     # Output Path (video trên máy Windows sau khi tải/Export) — KHÔNG upload, KHÔNG URL.
     output_path: str | None = None
     output_folder: str | None = None

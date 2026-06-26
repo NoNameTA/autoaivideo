@@ -500,8 +500,46 @@ class VideoSourceService:
             for it in items:
                 if it.job_id and it.job_id in jmap:
                     it.status = _JOB_TO_ITEM.get(jmap[it.job_id], it.status)
+            # Media Check (ffprobe) cho item ĐÃ tải xong mà chưa kiểm — cache vào DB.
+            await VideoSourceService._media_check_done(session, items, jmap)
             await VideoSourceService._attach_output_paths(session, items, jmap)
         return items
+
+    # Số item tối đa ffprobe trong 1 lần list (phần còn lại kiểm ở lần refresh sau).
+    _MEDIA_CHECK_PER_CALL = 25
+
+    @staticmethod
+    async def _media_check_done(
+        session: AsyncSession, items: list[VideoSourceItem], jmap: dict[str, str]
+    ) -> None:
+        """ffprobe item ĐÃ XONG chưa kiểm → set media_type (Media Check sau Download).
+
+        Chạy ở SESSION RIÊNG (không commit session đọc list → không persist status suy diễn, tránh
+        lock). Phản ánh kết quả vào item in-memory để serialize.
+        """
+        from app.db.session import SessionLocal
+        from app.services import media_check
+
+        pending = [
+            it for it in items
+            if it.job_id
+            and jmap.get(it.job_id) == JobStatus.completed.value
+            and not it.media_type
+        ]
+        if not pending:
+            return
+        results: dict[str, str] = {}
+        async with SessionLocal() as s2:
+            for it in pending[: VideoSourceService._MEDIA_CHECK_PER_CALL]:
+                it2 = await s2.get(VideoSourceItem, it.id)
+                if it2 is None:
+                    continue
+                mt = await media_check.check_item(s2, it2, commit=True)
+                if mt:
+                    results[it.id] = mt
+        for it in items:
+            if it.id in results:
+                it.media_type = results[it.id]
 
     @staticmethod
     async def _attach_output_paths(
@@ -536,6 +574,9 @@ class VideoSourceService:
             a = Asset(job_id=jid, path=path, size=size or 0)
             by_job.setdefault(jid, []).append(a)
         for it in done:
+            # Chỉ tạo Output Path nếu Media Type = VIDEO (audio_only/invalid → bỏ qua).
+            if it.media_type and it.media_type != "video":
+                continue
             info = op_resolve.from_assets(by_job.get(it.job_id, []), dest_map.get(it.job_id))
             if info:
                 it.output_path = info["output_path"]

@@ -4,6 +4,46 @@
 
 ## [Unreleased]
 
+### Media Check — phân biệt VIDEO / AUDIO_ONLY / INVALID bằng ffprobe (2026-06-26)
+> Bổ sung bước Media Check SAU Download: dùng **ffprobe (stream THẬT)**, KHÔNG dựa đuôi/tên file/MIME.
+> Tránh đưa nhầm file chỉ-audio vào chỉnh sửa. **Additive** — KHÔNG đổi Workflow/Queue Engine,
+> Adapter Framework, Agent Core, Plugin, Cookie Manager.
+>
+> ⚠️ **Lưu ý kiến trúc (đã cân nhắc, không dừng):** SPEC mô tả Media Check như 1 *bước Queue* giữa
+> Download↔Edit, nhưng cũng cấm đổi Engine/Queue/Adapter. Theo nguyên tắc "chỉ bổ sung", Media Check
+> được hiện thực là **kiểm tra additive sau Download** (ffprobe, cache vào item) + chặn edit + hiện
+> ở UI/Logs/Stats/Write-back — KHÔNG thêm step Queue mới (vì sẽ phải đổi Engine/Adapter).
+
+#### Added — Backend
+- `services/media_check.py`: `probe(path)` ffprobe → VIDEO / AUDIO_ONLY / INVALID (bỏ qua
+  attached_pic = ảnh bìa của file audio; size 0 / hỏng / không stream → INVALID). `check_item()`
+  set `media_type` + log Media.*. DB: cột `video_source_items.media_type` (migration `a1b2c3d4e5f6`).
+- `VideoSourceService.list_items`: Media Check **lười** (ffprobe item đã tải xong chưa kiểm, cache
+  vào DB ở **session riêng** — không persist status suy diễn, không lock). Output Path chỉ tạo khi
+  Media Type = VIDEO. `VideoSourceItemOut` thêm `media_type`.
+- Edit-gate: `VariationService._source_asset` chặn AUDIO_ONLY/INVALID bằng **ffprobe** (không theo
+  đuôi file) → KHÔNG tạo Job Edit cho audio. Write-back thêm cột **Media Type** (VIDEO/AUDIO_ONLY/
+  INVALID); chỉ ghi Output Path khi VIDEO. Stats khối **media** (video/audio_only/invalid/chưa
+  kiểm/tỉ lệ video hợp lệ). Logs: Media.Check.Start/Success/Failed, Media.Video/AudioOnly/Invalid.
+- `db/session.py`: thêm `PRAGMA busy_timeout=5000` (tránh 'database is locked' khi nhiều session
+  ghi nối tiếp — Media Check + EventService).
+
+#### Added — Frontend
+- Video Sources: cột **Media** (🎥 Video / 🎵 Audio Only / ❌ Invalid) + **bộ lọc** Media Type
+  (All/Video/Audio Only/Invalid). Statistics: khối **Media Check** (Tổng Video / Audio bị bỏ qua /
+  Invalid / Chưa kiểm / Video đã chỉnh sửa / Tỷ lệ Video hợp lệ). Types `MediaStats` + item.media_type.
+
+#### Verified (LIVE, ffprobe THẬT, không mock)
+- **ffprobe**: video .mp4 → VIDEO; audio .mp3/.m4a → AUDIO_ONLY; file rác/0-byte → INVALID.
+- **Items (source Affiliate)**: FB → video; TikTok → audio_only; job cũ mất file → invalid (đúng).
+  @taravn.vn → video; YouTube "Me at the zoo" → video.
+- **Edit-gate**: variation trên item audio → CHẶN ("CHỈ CÓ AUDIO, ffprobe xác nhận", KHÔNG tạo
+  job); trên item video → tạo job OK.
+- **Write-back LIVE** (sheet WritebackTest): cột **Media Type=AUDIO_ONLY**, Output Path rỗng (gated).
+- Logs Media.Check.Start/Success + Media.Video/AudioOnly/Invalid; Stats media (video 6/audio 6/
+  invalid 4/ratio 37.5%). Browser: cột Media + filter + Statistics, **0 lỗi console**. Backend ruff
+  + pytest **71/1skip** (+6); Agent ruff+pytest 15; FE lint+build ✅.
+
 ### ✅ Cookie Manager HOÀN THÀNH — nghiệm thu LIVE TikTok (2026-06-26)
 > Tải video TikTok THẬT thành công end-to-end với cookie đăng nhập của user. Thêm dependency
 > `curl_cffi` (agent/requirements.txt) — cung cấp impersonate target cho yt-dlp để vượt anti-bot

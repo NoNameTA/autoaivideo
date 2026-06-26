@@ -260,6 +260,28 @@ function Body({ data }: { data: Stats }) {
       </div>
 
       <div>
+        <h2 className="mb-3 text-sm font-semibold text-text">
+          Media Check (ffprobe sau Download — phân loại video thật / audio / hỏng)
+        </h2>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <Kpi label="🎥 Tổng Video" value={String(data.media.video)} accent="var(--success)" />
+          <Kpi
+            label="🎵 Audio bị bỏ qua"
+            value={String(data.media.audio_only)}
+            accent={data.media.audio_only ? "var(--warning)" : undefined}
+          />
+          <Kpi
+            label="❌ Invalid"
+            value={String(data.media.invalid)}
+            accent={data.media.invalid ? "var(--danger)" : undefined}
+          />
+          <Kpi label="Chưa kiểm" value={String(data.media.unchecked)} />
+          <Kpi label="Video đã chỉnh sửa" value={String(data.edit.exported_total)} accent="var(--info)" />
+          <Kpi label="Tỷ lệ Video hợp lệ" value={`${Math.round(data.media.valid_ratio * 100)}%`} />
+        </div>
+      </div>
+
+      <div>
         <h2 className="mb-3 text-sm font-semibold text-text">Cookie Manager</h2>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <Kpi label="Cấu hình" value={String(data.cookies.configured)} />

@@ -13,6 +13,7 @@ KHÔNG upload, KHÔNG `Output URL`. Ghi **Output Path** (đường dẫn video t
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from sqlalchemy import select
@@ -26,6 +27,7 @@ from app.models.enums import JobStatus
 from app.models.job import Job
 from app.models.video_source import VideoSource
 from app.models.video_source_item import VideoSourceItem
+from app.services import media_check
 from app.services import output_path as op_resolve
 from app.services.connection_service import ConnectionService
 from app.services.credential_service import CredentialService
@@ -36,6 +38,7 @@ log = logging.getLogger("sheet_writeback")
 # Thứ tự cột write-back (tự tạo nếu thiếu). KHÔNG upload → Output Path/Filename, KHÔNG Output URL.
 WRITEBACK_COLUMNS = [
     "Status",
+    "Media Type",
     "Output Path",
     "Output Filename",
     "Completed Time",
@@ -130,16 +133,22 @@ async def _writeback_job(session: AsyncSession, job_id: str) -> None:
 
     ok = job.status == JobStatus.completed
     assets: list[Asset] = list(job.assets)
-    # Output Path = đường dẫn video trên máy (dest_folder đã nhúng nếu Plugin copy vào Output
-    # Folder, nếu không thì data_dir/asset.path). KHÔNG upload, KHÔNG URL.
+    # Media Check (ffprobe sau Download): VIDEO/AUDIO_ONLY/INVALID — chỉ tạo Output Path nếu VIDEO.
+    media_type = ""
     output_path = ""
     output_filename = ""
     if ok and assets:
-        dest_folder = (job.vars or {}).get("dest_folder")
-        info = op_resolve.from_assets(assets, dest_folder)
-        if info:
-            output_path = info["output_path"]
-            output_filename = info["output_filename"]
+        a = media_check.pick_asset(assets)
+        if a:
+            mt = await asyncio.to_thread(media_check.probe, media_check.resolve_asset_path(a.path))
+            media_type = mt.upper()  # VIDEO | AUDIO_ONLY | INVALID
+            item.media_type = mt  # cache vào DB (session write-back riêng)
+            if mt == media_check.VIDEO:
+                dest_folder = (job.vars or {}).get("dest_folder")
+                info = op_resolve.from_assets(assets, dest_folder)
+                if info:
+                    output_path = info["output_path"]
+                    output_filename = info["output_filename"]
 
     starts = [s.started_at for s in job.steps if s.started_at]
     ends = [s.finished_at for s in job.steps if s.finished_at]
@@ -152,6 +161,7 @@ async def _writeback_job(session: AsyncSession, job_id: str) -> None:
 
     values = {
         "Status": "Done" if ok else "Failed",
+        "Media Type": media_type,
         "Output Path": output_path,
         "Output Filename": output_filename,
         "Completed Time": end.strftime("%Y-%m-%d %H:%M:%S") if end else "",

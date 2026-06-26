@@ -207,6 +207,15 @@ export interface EditStats {
   avg_edit_seconds: number;
 }
 
+// Media Check (ffprobe sau Download) — phân loại video thật / chỉ audio / hỏng.
+export interface MediaStats {
+  video: number;
+  audio_only: number;
+  invalid: number;
+  unchecked: number;
+  valid_ratio: number;
+}
+
 // Output Folders (KHÔNG upload — video lưu trên máy Windows).
 export interface FolderSettings {
   download_folder: string;
@@ -253,6 +262,7 @@ export interface Stats {
   video: VideoStats;
   download: DownloadStats;
   edit: EditStats;
+  media: MediaStats;
   cookies: CookieStats;
   generated_at: string;
 }
@@ -280,6 +290,8 @@ export interface VideoSourceItem {
   sheet_row?: number | null;
   video_id?: string | null;
   job_id: string | null;
+  // Media Check (ffprobe sau Download): video | audio_only | invalid | null (chưa kiểm).
+  media_type?: string | null;
   // Output Path (video trên máy sau khi tải/Export) — KHÔNG upload, KHÔNG URL.
   output_path?: string | null;
   output_folder?: string | null;

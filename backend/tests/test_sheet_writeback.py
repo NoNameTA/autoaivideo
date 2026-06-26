@@ -27,9 +27,10 @@ def test_fmt_duration() -> None:
 
 
 def test_writeback_columns_contract() -> None:
-    # KHÔNG upload → Output Path/Filename, KHÔNG Output URL (owner: video lưu trên máy).
+    # KHÔNG upload → Output Path/Filename, KHÔNG Output URL; có Media Type (ffprobe sau Download).
     assert WRITEBACK_COLUMNS == [
         "Status",
+        "Media Type",
         "Output Path",
         "Output Filename",
         "Completed Time",

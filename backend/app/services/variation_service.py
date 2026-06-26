@@ -31,7 +31,6 @@ _RATIOS: dict[str, tuple[int, int]] = {
 _SPEEDS = [1.0, 0.97, 1.03, 0.95, 1.05, 0.98, 1.02, 0.96, 1.04, 0.99]
 _ZOOMS = [1.0, 0.94, 0.92, 0.96, 0.90]
 _EQS = [(0.0, 1.0), (0.03, 1.06), (-0.03, 1.1), (0.05, 0.95), (-0.02, 1.12)]
-_VIDEO_EXT = (".mp4", ".webm", ".mkv", ".mov", ".m4v")
 
 
 def _find_font() -> str | None:
@@ -144,26 +143,35 @@ def build_recipes(opts: dict, count: int, title: str | None = None) -> list[dict
 class VariationService:
     @staticmethod
     async def _source_asset(session: AsyncSession, item: VideoSourceItem) -> Asset:
+        """Lấy asset video nguồn — gate bằng Media Check THẬT (ffprobe), KHÔNG theo đuôi file.
+
+        AUDIO_ONLY / INVALID → raise (KHÔNG tạo Job Edit). Đây là điểm chặn audio vào edit.
+        """
         if not item.job_id:
             raise ValidationAppError("Item chưa tải xong (chưa có video nguồn để chỉnh)")
+        from app.services import media_check
+
         assets = (
             await session.execute(
                 select(Asset).where(Asset.job_id == item.job_id).order_by(Asset.size.desc())
             )
         ).scalars().all()
-        vid = next(
-            (a for a in assets if a.path and a.path.lower().endswith(_VIDEO_EXT) and a.size > 0),
-            None,
-        )
-        if vid is None:
-            if assets:  # có asset nhưng là audio/không phải video
-                raise ValidationAppError(
-                    "Video này tải về CHỈ CÓ AUDIO — chọn item, bấm Run Workflow tải lại rồi chỉnh."
-                )
+        if not assets:
             raise ValidationAppError(
                 "Item chưa có file video (hoặc tải ở phiên cũ) — Run Workflow tải lại rồi chỉnh."
             )
-        return vid
+        # Media Check (ffprobe) — dùng cache nếu có, không thì kiểm ngay.
+        mt = item.media_type or await media_check.check_item(session, item, commit=True)
+        if mt == media_check.AUDIO_ONLY:
+            raise ValidationAppError(
+                "Video này CHỈ CÓ AUDIO (ffprobe xác nhận) — không chỉnh được. Hãy chọn video có "
+                "hình (.mp4). Một số video TikTok bị chặn tải hình nên chỉ ra audio."
+            )
+        if mt != media_check.VIDEO:
+            raise ValidationAppError(
+                "File tải về HỎNG / không có video stream (INVALID) — Run Workflow tải lại."
+            )
+        return media_check.pick_asset(list(assets)) or assets[0]
 
     @staticmethod
     async def create_variations(

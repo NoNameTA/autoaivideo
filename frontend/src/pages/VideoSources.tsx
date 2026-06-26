@@ -39,6 +39,20 @@ const STATUS_COLOR: Record<string, string> = {
 };
 const FILTERS = ["", "pending", "processing", "done", "failed"];
 
+// Media Check (ffprobe sau Download): icon + nhãn + màu.
+const MEDIA_META: Record<string, { icon: string; label: string; cls: string }> = {
+  video: { icon: "🎥", label: "Video", cls: "text-success" },
+  audio_only: { icon: "🎵", label: "Audio Only", cls: "text-warning" },
+  invalid: { icon: "❌", label: "Invalid", cls: "text-danger" },
+};
+// Bộ lọc theo Media Type. "" = tất cả; "unchecked" = chưa kiểm.
+const MEDIA_FILTERS: { v: string; label: string }[] = [
+  { v: "", label: "Media: tất cả" },
+  { v: "video", label: "🎥 Video" },
+  { v: "audio_only", label: "🎵 Audio Only" },
+  { v: "invalid", label: "❌ Invalid" },
+];
+
 // Auto Refresh (incremental qua React Query refetchInterval — không reload trang).
 const AUTO_OPTIONS: { label: string; ms: number }[] = [
   { label: "Tắt", ms: 0 },
@@ -281,6 +295,7 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
 
   const [text, setText] = useState("");
   const [filter, setFilter] = useState("");
+  const [mediaFilter, setMediaFilter] = useState(""); // lọc theo Media Type (ffprobe)
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   // Tạo biến thể (1 video -> N) — tuỳ chọn.
@@ -305,11 +320,13 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
     return data.filter(
       (it) =>
         (!filter || it.status === filter) &&
+        (!mediaFilter ||
+          (mediaFilter === "unchecked" ? !it.media_type : it.media_type === mediaFilter)) &&
         (!search ||
           it.url.toLowerCase().includes(search.toLowerCase()) ||
           (it.title ?? "").toLowerCase().includes(search.toLowerCase())),
     );
-  }, [items.data, filter, search]);
+  }, [items.data, filter, mediaFilter, search]);
 
   const submitLinks = () => {
     if (!text.trim()) return;
@@ -590,6 +607,19 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
             {f || "tất cả"}
           </button>
         ))}
+        <span className="ml-2 text-border">|</span>
+        {MEDIA_FILTERS.map((m) => (
+          <button
+            key={m.v || "media-all"}
+            onClick={() => setMediaFilter(m.v)}
+            title="Lọc theo Media Type (ffprobe sau Download)"
+            className={`rounded px-2 py-0.5 text-xs ${
+              mediaFilter === m.v ? "bg-primary text-white" : "bg-border text-muted hover:text-text"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
         <input
           className="ml-auto w-56 rounded border border-border bg-bg px-3 py-1 text-sm text-text"
           placeholder="Tìm link / tên…"
@@ -613,6 +643,7 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
                 <th className="py-2 pr-3">Tên</th>
                 <th className="py-2 pr-3">Link</th>
                 <th className="py-2 pr-3">Trạng thái</th>
+                <th className="py-2 pr-3">Media</th>
                 <th className="py-2 pr-3">Output</th>
                 <th className="py-2 pr-3">Job</th>
                 <th className="py-2 pr-3"></th>
@@ -635,6 +666,16 @@ function SourceDetail({ source, autoMs }: { source: VideoSource; autoMs: number 
                   </td>
                   <td className={`py-1.5 pr-3 text-xs ${STATUS_COLOR[it.status] ?? "text-muted"}`}>
                     {it.status}
+                  </td>
+                  <td className="py-1.5 pr-3 text-xs">
+                    {it.media_type && MEDIA_META[it.media_type] ? (
+                      <span className={MEDIA_META[it.media_type].cls}
+                        title={`Media Check (ffprobe): ${MEDIA_META[it.media_type].label}`}>
+                        {MEDIA_META[it.media_type].icon} {MEDIA_META[it.media_type].label}
+                      </span>
+                    ) : (
+                      <span className="text-muted" title="Chưa kiểm (chưa tải xong / chờ Media Check)">—</span>
+                    )}
                   </td>
                   <td className="py-1.5 pr-3 max-w-xs truncate font-mono text-xs text-muted"
                     title={it.output_path ?? ""}>

@@ -37,6 +37,8 @@ if _settings.database_url.startswith("sqlite"):
         cur = dbapi_conn.cursor()
         cur.execute("PRAGMA foreign_keys=ON")
         cur.execute("PRAGMA journal_mode=WAL")
+        # Chờ tối đa 5s khi DB bận (nhiều session ghi nối tiếp) thay vì lỗi 'database is locked'.
+        cur.execute("PRAGMA busy_timeout=5000")
         cur.close()
 
 

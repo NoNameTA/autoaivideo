@@ -45,6 +45,7 @@ class StatsService:
         video = await StatsService._video(session)
         download = await StatsService._download(session)
         edit = await StatsService._edit(session)
+        media = await StatsService._media(session)
         cookies = await StatsService._cookies(session)
 
         return {
@@ -60,8 +61,29 @@ class StatsService:
             "video": video,
             "download": download,
             "edit": edit,
+            "media": media,
             "cookies": cookies,
             "generated_at": utcnow(),
+        }
+
+    @staticmethod
+    async def _media(session: AsyncSession) -> dict:
+        """Media Check: video / audio_only / invalid / chưa kiểm + tỉ lệ video hợp lệ."""
+        rows = (
+            await session.execute(select(VideoSourceItem.media_type))
+        ).scalars().all()
+        video = sum(1 for r in rows if r == "video")
+        audio_only = sum(1 for r in rows if r == "audio_only")
+        invalid = sum(1 for r in rows if r == "invalid")
+        unchecked = sum(1 for r in rows if not r)
+        classified = video + audio_only + invalid
+        # Video đã Export (chỉnh sửa) = số job edit completed (ffmpeg/bvs) — lấy từ block edit.
+        return {
+            "video": video,
+            "audio_only": audio_only,
+            "invalid": invalid,
+            "unchecked": unchecked,
+            "valid_ratio": round(video / classified, 4) if classified else 0.0,
         }
 
     # Adapter chỉnh sửa/Export (video.ffmpeg = biến thể ffmpeg, video.bulkauto = BVS).

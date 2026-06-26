@@ -34,6 +34,9 @@ class VideoSourceItem(Base):
     job_id: Mapped[str | None] = mapped_column(
         ForeignKey("jobs.id", ondelete="SET NULL"), default=None
     )
+    # Media Check (ffprobe sau Download): video | audio_only | invalid | None (chưa kiểm).
+    # Phân loại theo STREAM THẬT (ffprobe), KHÔNG theo đuôi/tên file.
+    media_type: Mapped[str | None] = mapped_column(String(16), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
