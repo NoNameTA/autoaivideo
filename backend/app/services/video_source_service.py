@@ -579,6 +579,18 @@ class VideoSourceService:
         from app.services.cookie_service import CookieService
         from app.services.output_settings import OutputSettings
 
+        # AUTO-DETECT: cookie MỚI/đổi trong .secrets → log Cookie.Reloaded NGAY trong luồng tải
+        # (không cần restart Agent — cookie_map đọc file tươi mỗi Run). KHÔNG làm hỏng Run nếu lỗi.
+        try:
+            for ch in CookieService.detect_reloads():
+                await EventService.record(
+                    entity_type="cookie",
+                    entity_id=str(ch.get("name") or ""),
+                    type="Cookie.Reloaded",
+                    data={"platform": ch.get("name")},  # KHÔNG log nội dung cookie
+                )
+        except Exception:  # noqa: BLE001 - log reload KHÔNG được làm hỏng tải video
+            pass
         cmap = CookieService.cookie_map()
         # Output Folders: nhúng thư mục tải về (Download Folder) → Agent/Plugin lưu video vào đó
         # (KHÔNG hard-code Plugin; KHÔNG upload). Backend đọc Settings, Agent nhận qua inputs.

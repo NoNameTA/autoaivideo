@@ -4,6 +4,14 @@
 
 ## [Unreleased]
 
+### Cookie auto-detect trong luồng tải — Cookie.Reloaded khi Run (2026-06-25)
+> Bổ sung nhỏ: `VideoSourceService.run()` gọi `CookieService.detect_reloads()` → log
+> **Cookie.Reloaded** NGAY trong luồng tải khi file cookie trong `.secrets` mới/đổi (trước chỉ phát
+> ở GET /cookies). Auto-detect không cần restart Agent (cookie_map đọc file tươi mỗi Run). Bọc
+> try/except — log reload KHÔNG làm hỏng tải video. Additive, KHÔNG đổi engine/queue/agent-core/DB.
+> Verify LIVE (YouTube): đổi cookie → Run → Cookie.Reloaded + Cookie.Loaded + Video.Download.Start/
+> End + Workflow.End cùng luồng; tải `.mp4` thật. ruff+pytest 65/1skip, FE lint+build.
+
 ### Cookie Manager — Agent test cookie THẬT + auto-detect + per-platform stats (2026-06-25)
 > Hoàn thiện Cookie Manager: Desktop Agent (nơi DUY NHẤT đọc cookie) test cookie THẬT với nền tảng;
 > tự phát hiện cookie mới (không restart); thống kê theo nền tảng; hướng dẫn xuất cookie trên web.
